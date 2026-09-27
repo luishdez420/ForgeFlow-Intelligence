@@ -1,0 +1,21 @@
+{
+  "name": "@forgeflow/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "start": "tsx src/server.ts",
+    "db:migrate": "tsx src/migrate.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:integration": "INTEGRATION_TEST=1 vitest run test/*.integration.test.ts"
+  },
+  "dependencies": {
+    "@forgeflow/schemas": "0.1.0",
+    "pg": "^8.23.0"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.23.1"
+  }
+}

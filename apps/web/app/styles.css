@@ -1,0 +1,30 @@
+:root {
+  color-scheme: light;
+  font-family: Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  color: #18212f;
+  background: #f5f7fa;
+}
+
+main {
+  width: min(100% - 2rem, 70rem);
+  margin: 0 auto;
+  padding: 4rem 0;
+}
+
+h1 {
+  margin: 0 0 0.5rem;
+}
+
+p {
+  max-width: 65ch;
+  margin: 0;
+  line-height: 1.6;
+}
