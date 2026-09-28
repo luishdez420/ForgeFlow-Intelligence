@@ -12,7 +12,6 @@ ForgeFlow is an internal analyst-team MVP for durable, source-grounded company a
 
 ## In delivery
 
-- #10: worker runtime, registration, heartbeats, capability advertisement, draining, graceful shutdown, and PostgreSQL task claims. Implementation is verified locally and awaiting its focused commit/push/closure.
 - #11: persisted retry policy, failure classification, stale-lease safety, and expired-lease recovery. TypeScript and database integration coverage passed; final worker-runtime coverage is being run before delivery.
 
 ## Verified working locally
@@ -31,4 +30,4 @@ ForgeFlow is an internal analyst-team MVP for durable, source-grounded company a
 
 ## Next planned issue
 
-#12 — workflow-engine integration and failure-injection tests, after #10 and #11 are delivered.
+#12 — workflow-engine integration and failure-injection tests, after #11 is delivered.
