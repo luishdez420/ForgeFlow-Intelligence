@@ -4,6 +4,7 @@ import {
   apiErrorSchema,
   createCompanyAnalysisWorkflowRequestSchema,
   createCompanyAnalysisWorkflowResponseSchema,
+  reportDetailSchema,
   workflowDetailSchema,
 } from "@forgeflow/schemas";
 
@@ -12,6 +13,7 @@ import {
   getWorkflow,
   WorkflowNotFoundError,
 } from "./workflows.js";
+import { getReport, ReportNotFoundError } from "./reports.js";
 
 const port = Number.parseInt(process.env.PORT ?? "3001", 10);
 
@@ -96,8 +98,13 @@ const server = createServer(async (request, response) => {
       );
       return;
     }
+    const reportMatch = pathname.match(/^\/reports\/([0-9a-f-]{36})$/i);
+    if (request.method === "GET" && reportMatch) {
+      sendJson(response, 200, reportDetailSchema.parse(await getReport(reportMatch[1])));
+      return;
+    }
   } catch (error) {
-    if (error instanceof WorkflowNotFoundError) {
+    if (error instanceof WorkflowNotFoundError || error instanceof ReportNotFoundError) {
       sendJson(
         response,
         404,
