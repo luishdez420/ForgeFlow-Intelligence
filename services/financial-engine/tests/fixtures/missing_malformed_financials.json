@@ -1,0 +1,9 @@
+{
+  "financials": {
+    "net_income": {
+      "value": "unknown",
+      "unit": "USD",
+      "period_end": "not-a-date"
+    }
+  }
+}

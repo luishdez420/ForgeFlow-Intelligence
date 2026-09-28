@@ -1,0 +1,17 @@
+{
+  "company": {
+    "ticker": "msft",
+    "name": "Microsoft Corporation",
+    "cik": 789019,
+    "exchange": "NASDAQ"
+  },
+  "financials": {
+    "revenue": { "value": "245122", "unit": "usd", "period_end": "2025-06-30" },
+    "net_income": { "value": 88100, "unit": "USD", "period_end": "2025-06-30" },
+    "total_assets": {
+      "value": 619003,
+      "unit": "USD",
+      "period_end": "2025-06-30"
+    }
+  }
+}
