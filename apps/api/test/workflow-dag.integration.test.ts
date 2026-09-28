@@ -13,6 +13,12 @@ import {
   recordTaskFailure,
   recoverExpiredTaskLeases,
 } from "../src/task-retry.js";
+import {
+  linkReportItemSources,
+  recordDocument,
+  recordFact,
+  recordSource,
+} from "../src/provenance.js";
 
 const runIntegration = process.env.INTEGRATION_TEST === "1";
 const createdWorkflowIds: string[] = [];
@@ -455,5 +461,112 @@ describe.skipIf(!runIntegration)("workflow DAG persistence", () => {
       [workflowId],
     );
     expect(reportCount.rows[0]?.count).toBe("1");
+  });
+
+  it("persists source context and contradictory facts independently", async () => {
+    const workflowId = randomUUID();
+    const companyId = randomUUID();
+    createdWorkflowIds.push(workflowId);
+    createdCompanyIds.push(companyId);
+    await withTransaction(async (client) => {
+      await client.query(
+        "INSERT INTO forgeflow.companies (id, ticker) VALUES ($1, $2)",
+        [companyId, "PROVENANCE"],
+      );
+      await client.query(
+        `INSERT INTO forgeflow.workflow_runs (id, company_id, ticker, workflow_type, state) VALUES ($1, $2, 'PROVENANCE', 'COMPANY_ANALYSIS', 'PENDING')`,
+        [workflowId, companyId],
+      );
+    });
+    const first = await recordSource(pool, {
+      companyId,
+      sourceType: "SEC_FILING",
+      provider: "SEC EDGAR",
+      originUrl: "https://www.sec.gov/Archives/first",
+      retrievedAt: "2026-09-28T00:00:00.000Z",
+      content: "first filing",
+    });
+    const duplicate = await recordSource(pool, {
+      companyId,
+      sourceType: "SEC_FILING",
+      provider: "SEC EDGAR",
+      originUrl: "https://www.sec.gov/Archives/first",
+      retrievedAt: "2026-09-28T01:00:00.000Z",
+      content: "first filing",
+    });
+    const second = await recordSource(pool, {
+      companyId,
+      sourceType: "COMPANY_WEBSITE",
+      provider: "Issuer",
+      originUrl: "https://example.com/investors",
+      retrievedAt: "2026-09-28T00:00:00.000Z",
+      content: "issuer statement",
+    });
+    expect(duplicate.sourceId).toBe(first.sourceId);
+    const documentId = await recordDocument(pool, {
+      sourceId: first.sourceId,
+      documentType: "10-K",
+      content: "first filing",
+    });
+    await recordFact(pool, {
+      companyId,
+      sourceId: first.sourceId,
+      documentId,
+      fieldName: "revenue",
+      rawValue: 100,
+      normalizationStatus: "NORMALIZED",
+    });
+    await recordFact(pool, {
+      companyId,
+      sourceId: second.sourceId,
+      fieldName: "revenue",
+      rawValue: 120,
+      normalizationStatus: "AMBIGUOUS",
+    });
+    const reportId = (
+      await pool.query<{ id: string }>(
+        "INSERT INTO forgeflow.reports (workflow_run_id, company_id, state) VALUES ($1, $2, 'DRAFT') RETURNING id",
+        [workflowId, companyId],
+      )
+    ).rows[0]!.id;
+    const itemId = (
+      await pool.query<{ id: string }>(
+        "INSERT INTO forgeflow.report_items (report_id, item_kind, section, title, content, display_order) VALUES ($1, 'FACT', 'Financials', 'Revenue', 'Conflicting source values retained.', 0) RETURNING id",
+        [reportId],
+      )
+    ).rows[0]!.id;
+    await linkReportItemSources(pool, itemId, [
+      first.sourceId,
+      second.sourceId,
+      first.sourceId,
+    ]);
+    expect(
+      (
+        await pool.query(
+          "SELECT id FROM forgeflow.facts WHERE company_id = $1 AND field_name = 'revenue'",
+          [companyId],
+        )
+      ).rowCount,
+    ).toBe(2);
+    expect(
+      (
+        await pool.query(
+          "SELECT source_id FROM forgeflow.report_item_sources WHERE report_item_id = $1",
+          [itemId],
+        )
+      ).rowCount,
+    ).toBe(2);
+    await pool.query("DELETE FROM forgeflow.reports WHERE id = $1", [reportId]);
+    await pool.query("DELETE FROM forgeflow.facts WHERE company_id = $1", [
+      companyId,
+    ]);
+    await pool.query(
+      "DELETE FROM forgeflow.documents WHERE source_id IN ($1, $2)",
+      [first.sourceId, second.sourceId],
+    );
+    await pool.query("DELETE FROM forgeflow.sources WHERE id IN ($1, $2)", [
+      first.sourceId,
+      second.sourceId,
+    ]);
   });
 });

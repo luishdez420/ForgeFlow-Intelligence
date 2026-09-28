@@ -12,6 +12,7 @@ ForgeFlow is an internal analyst-team MVP for durable, source-grounded company a
 - #10: worker runtime, registration, heartbeats, capability advertisement, draining, graceful shutdown, and PostgreSQL task claims. Delivered in `e13658e` and closed with automated and local smoke-test evidence.
 - #11: persisted retry policy, failure classification, stale-lease safety, and expired-lease recovery. Delivered in `b2d33d3` and closed with unit and PostgreSQL integration evidence.
 - #12: failure-injection coverage for crash-after-claim, duplicate delivery, retry timing, DAG propagation, and recovery. Delivered in `08e8d0d` and closed with Compose-backed integration evidence.
+- #13: immutable provenance persistence, deterministic content hashes, safe source URL validation, and contradiction-preserving facts. Delivered locally and awaiting commit/push/closure.
 
 ## Verified working locally
 
@@ -30,4 +31,4 @@ ForgeFlow is an internal analyst-team MVP for durable, source-grounded company a
 
 ## Next planned issue
 
-#13 — source, document, and provenance model, after #12 is delivered.
+#14 — SEC EDGAR provider adapter, after #13 is delivered.

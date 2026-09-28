@@ -29,3 +29,9 @@ This is an append-only record of delivery evidence, decisions, failures, and def
 - Verification passed type checks; API integration tests (6 passed); API and schema unit tests (9 passed); Python worker/financial tests (4 passed); and formatting.
 - No manual testing, credentials, or live-provider access is required for this issue.
 - Pushed `08e8d0d test(workflow): add failure injection coverage` and closed #12 with the recorded evidence.
+
+## 2026-09-28 — Issue #13 delivered locally
+
+- Added deterministic SHA-256 content identity, credential-free HTTPS source URL validation, idempotent source/document persistence, append-only facts, and idempotent report-item source links.
+- Integration coverage proves repeated identical source content resolves to one source, provenance links remain available, and contradictory facts persist independently.
+- Verification passed API type checks, API/schema unit tests (11 passed), PostgreSQL integration tests (7 passed), and formatting.
