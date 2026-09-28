@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
+from math import ceil
 from os import environ
 from uuid import uuid4
 
@@ -118,3 +119,76 @@ class PostgresWorkerRepository:
                 lease_token=lease_token,
                 lease_expires_at=task["lease_expires_at"].isoformat(),
             )
+
+    def record_task_failure(
+        self, task_id: str, lease_token: str, classification: str, code: str, message: str
+    ) -> None:
+        with self._connection() as connection, connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT id, workflow_run_id, attempt_count, max_attempts, lease_token,
+                       retry_initial_delay_seconds, retry_max_delay_seconds, retry_backoff_multiplier
+                FROM forgeflow.workflow_tasks
+                WHERE id = %s AND lease_token = %s::uuid
+                  AND state IN ('LEASED', 'RUNNING')
+                FOR UPDATE
+                """,
+                (task_id, lease_token),
+            )
+            task = cursor.fetchone()
+            if task is None:
+                return
+
+            retry = classification in {"TRANSIENT", "RATE_LIMIT"} and task["attempt_count"] < task["max_attempts"]
+            delay = (
+                min(
+                    task["retry_max_delay_seconds"],
+                    ceil(task["retry_initial_delay_seconds"] * float(task["retry_backoff_multiplier"]) ** (task["attempt_count"] - 1)),
+                )
+                if retry
+                else 0
+            )
+            cursor.execute(
+                """
+                UPDATE forgeflow.task_attempts
+                SET state = 'FAILED', completed_at = now(), error_class = %s,
+                    error_code = %s, error_message = %s
+                WHERE task_id = %s AND lease_token = %s::uuid
+                  AND state IN ('LEASED', 'RUNNING')
+                """,
+                (classification, code, message, task_id, lease_token),
+            )
+            cursor.execute(
+                """
+                UPDATE forgeflow.workflow_tasks
+                SET state = CASE WHEN %s THEN 'RETRYING' ELSE 'FAILED' END,
+                    available_at = CASE WHEN %s THEN now() + make_interval(secs => %s::integer) ELSE available_at END,
+                    lease_token = NULL, lease_expires_at = NULL, leased_by_worker_id = NULL,
+                    completed_at = CASE WHEN %s THEN NULL ELSE now() END,
+                    last_error_code = %s, last_error_message = %s
+                WHERE id = %s AND lease_token = %s::uuid
+                """,
+                (retry, retry, delay, retry, code, message, task_id, lease_token),
+            )
+            if not retry:
+                cursor.execute(
+                    """
+                    WITH RECURSIVE blocked AS (
+                      SELECT dependency.task_id AS id
+                      FROM forgeflow.workflow_task_dependencies dependency
+                      JOIN forgeflow.workflow_tasks prerequisite ON prerequisite.id = dependency.depends_on_task_id
+                      WHERE prerequisite.workflow_run_id = %s
+                        AND prerequisite.state IN ('FAILED', 'CANCELLED')
+                      UNION
+                      SELECT dependency.task_id
+                      FROM forgeflow.workflow_task_dependencies dependency
+                      JOIN blocked ON blocked.id = dependency.depends_on_task_id
+                    )
+                    UPDATE forgeflow.workflow_tasks
+                    SET state = 'CANCELLED', completed_at = now(), last_error_code = 'DEPENDENCY_TERMINAL',
+                        last_error_message = 'A prerequisite task failed or was cancelled.'
+                    WHERE id IN (SELECT id FROM blocked)
+                      AND state IN ('PENDING', 'WAITING', 'RETRYING')
+                    """,
+                    (task["workflow_run_id"],),
+                )

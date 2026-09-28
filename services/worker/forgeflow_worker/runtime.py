@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import signal
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
@@ -30,7 +31,21 @@ class WorkerRepository(Protocol):
         self, worker_id: str, supported_kinds: list[str], lease_duration_seconds: int
     ) -> ClaimedTask | None: ...
 
+
+    def record_task_failure(
+        self, task_id: str, lease_token: str, classification: str, code: str, message: str
+    ) -> None: ...
+
+
 TaskHandler = Callable[[ClaimedTask], None]
+logger = logging.getLogger(__name__)
+
+
+class TaskExecutionError(Exception):
+    def __init__(self, classification: str, code: str, message: str) -> None:
+        super().__init__(message)
+        self.classification = classification
+        self.code = code
 
 
 class WorkerRuntime:
@@ -94,8 +109,20 @@ class WorkerRuntime:
         if task is None:
             return False
 
-        self._handlers[task.kind](task)
-        return True
+        try:
+            self._handlers[task.kind](task)
+            return True
+        except TaskExecutionError as error:
+            logger.exception("Task %s failed with %s", task.task_id, error.code)
+            self._repository.record_task_failure(
+                task.task_id, task.lease_token, error.classification, error.code, str(error)
+            )
+        except Exception as error:
+            logger.exception("Task %s raised an unexpected handler exception", task.task_id)
+            self._repository.record_task_failure(
+                task.task_id, task.lease_token, "TRANSIENT", "HANDLER_EXCEPTION", str(error)
+            )
+        return False
 
     def run_forever(self) -> None:
         self.start()

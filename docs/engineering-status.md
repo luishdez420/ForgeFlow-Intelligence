@@ -9,16 +9,14 @@ ForgeFlow is an internal analyst-team MVP for durable, source-grounded company a
 ## Completed and closed
 
 - #1–#9: architecture, ADRs, monorepo/tooling, Compose, shared contracts, initial schema, persisted workflow creation, DAG resolution, and atomic task claiming. Delivered in `0e2917e` and closed with verification evidence.
-
-## In delivery
-
-- #11: persisted retry policy, failure classification, stale-lease safety, and expired-lease recovery. TypeScript and database integration coverage passed; final worker-runtime coverage is being run before delivery.
+- #10: worker runtime, registration, heartbeats, capability advertisement, draining, graceful shutdown, and PostgreSQL task claims. Delivered in `e13658e` and closed with automated and local smoke-test evidence.
+- #11: persisted retry policy, failure classification, stale-lease safety, and expired-lease recovery. Delivered locally and awaiting its focused commit/push/closure.
 
 ## Verified working locally
 
 - Docker Compose starts healthy PostgreSQL on `127.0.0.1:15432` and Redis on `127.0.0.1:16379`.
 - The API persists and retrieves workflows, supports idempotency keys, validates DAGs, and atomically claims tasks.
-- Migration `001_initial_schema.sql` is applied to the local development database.
+- Migrations `001_initial_schema.sql` and `002_task_retry_policy.sql` are applied to the local development database.
 - Worker registration and one-shot graceful shutdown were smoke-tested against local PostgreSQL; the synthetic worker record was removed afterward.
 
 ## Known deferred work and blockers

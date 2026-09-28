@@ -1,4 +1,4 @@
-from forgeflow_worker.runtime import ClaimedTask, WorkerRuntime
+from forgeflow_worker.runtime import ClaimedTask, TaskExecutionError, WorkerRuntime
 
 
 class FakeRepository:
@@ -7,6 +7,7 @@ class FakeRepository:
         self.registered_capabilities: list[str] | None = None
         self.heartbeats: list[str] = []
         self.statuses: list[tuple[str, str]] = []
+        self.failures: list[tuple[str, str, str, str, str]] = []
         self.claims = 0
 
     def register(self, _: str, capabilities: list[str]) -> str:
@@ -23,6 +24,9 @@ class FakeRepository:
         self.claims += 1
         task, self.task = self.task, None
         return task
+
+    def record_task_failure(self, task_id: str, lease_token: str, classification: str, code: str, message: str) -> None:
+        self.failures.append((task_id, lease_token, classification, code, message))
 
 def test_runtime_registers_capabilities_and_executes_supported_task() -> None:
     handled: list[str] = []
@@ -45,3 +49,16 @@ def test_graceful_shutdown_stops_new_task_claims() -> None:
     assert runtime.run_once() is False
     assert repository.claims == 0
     assert repository.statuses == [("worker-1", "DRAINING")]
+
+
+def test_runtime_records_handler_failure_with_classification() -> None:
+    task = ClaimedTask("task-1", "workflow-1", "FETCH_SEC_FILINGS", "attempt-1", 1, "token", "2030-01-01T00:00:00+00:00")
+    repository = FakeRepository(task)
+
+    def failing_handler(_: ClaimedTask) -> None:
+        raise TaskExecutionError("RATE_LIMIT", "HTTP_429", "Provider rate limited the request.")
+
+    runtime = WorkerRuntime(repository, "test-worker", {"FETCH_SEC_FILINGS": failing_handler})
+
+    assert runtime.run_once() is False
+    assert repository.failures == [("task-1", "token", "RATE_LIMIT", "HTTP_429", "Provider rate limited the request.")]

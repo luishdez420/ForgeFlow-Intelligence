@@ -17,6 +17,6 @@ This is an append-only record of delivery evidence, decisions, failures, and def
 ## 2026-09-28 — Workflow engine delivery in progress
 
 - Delivered Issue #10: worker registration, capability advertisement, polling, heartbeats, drain behavior, signal-aware graceful shutdown, PostgreSQL claims, and a one-shot local worker smoke test.
-- Implemented Issue #11 retry policy persistence, exponential backoff, failure classification, stale-lease protection, and expired-lease recovery.
-- Prior verification passed TypeScript unit/integration suites and the initial worker-runtime tests. Final worker failure-handling coverage is pending before the Issue #11 commit.
+- Delivered Issue #11 locally: retry policy persistence, exponential backoff, failure classification, stale-lease protection, expired-lease recovery, and worker-side failure persistence.
+- Verification passed TypeScript type checks, API unit tests (5 passed), PostgreSQL integration tests (4 passed), schema tests (4 passed), worker-runtime tests (3 passed), and formatting.
 - No manual testing or external credential is currently required to deliver #10 or #11.

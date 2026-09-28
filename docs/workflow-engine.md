@@ -20,6 +20,13 @@ authentication, or permanent. Only configured retryable categories receive a
 persisted exponential-backoff schedule. A recovery process reclaims expired
 leases; it never assumes the previous worker completed an unrecorded effect.
 
+The MVP retries `TRANSIENT` and `RATE_LIMIT` failures only. Each task persists
+its retry policy: a five-second initial delay, multiplier of two, and a
+five-minute cap by default. Validation, authentication, and permanent failures
+become terminal immediately. An expired lease is recorded as a transient
+`LEASE_EXPIRED` attempt failure, then follows the same retry policy. A stale
+lease token cannot record an outcome for a newer attempt.
+
 ## Idempotency
 
 Every task handler receives a stable task ID and attempt ID. Authoritative

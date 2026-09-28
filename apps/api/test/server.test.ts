@@ -5,6 +5,7 @@ import {
   validateTaskGraph,
 } from "../src/workflow-dag.js";
 import { claimNextTask } from "../src/task-claiming.js";
+import { calculateRetryDelaySeconds } from "../src/task-retry.js";
 import { isValidWorkflowTransition } from "../src/workflows.js";
 
 describe("API bootstrap", () => {
@@ -50,5 +51,17 @@ describe("API bootstrap", () => {
     await expect(claimNextTask("not-a-worker-id", 0)).rejects.toThrow(
       "Lease duration",
     );
+  });
+
+  it("calculates capped exponential retry delays", () => {
+    const policy = {
+      maxAttempts: 3,
+      initialDelaySeconds: 5,
+      maxDelaySeconds: 20,
+      backoffMultiplier: 2,
+    };
+    expect(calculateRetryDelaySeconds(1, policy)).toBe(5);
+    expect(calculateRetryDelaySeconds(2, policy)).toBe(10);
+    expect(calculateRetryDelaySeconds(4, policy)).toBe(20);
   });
 });

@@ -9,6 +9,10 @@ import {
   resolveTaskDependencies,
 } from "../src/workflow-dag.js";
 import { claimNextTask } from "../src/task-claiming.js";
+import {
+  recordTaskFailure,
+  recoverExpiredTaskLeases,
+} from "../src/task-retry.js";
 
 const runIntegration = process.env.INTEGRATION_TEST === "1";
 const createdWorkflowIds: string[] = [];
@@ -199,5 +203,75 @@ describe.skipIf(!runIntegration)("workflow DAG persistence", () => {
     )[0];
     expect(task?.state).toBe("LEASED");
     expect(task?.attemptCount).toBe(1);
+  });
+
+  it("persists exponential retry state for failures and expired leases", async () => {
+    const workflowId = randomUUID();
+    const companyId = randomUUID();
+    const workerId = randomUUID();
+    createdWorkflowIds.push(workflowId);
+    createdCompanyIds.push(companyId);
+    createdWorkerIds.push(workerId);
+
+    await withTransaction(async (client) => {
+      await client.query(
+        "INSERT INTO forgeflow.companies (id, ticker) VALUES ($1, $2)",
+        [companyId, "RETRYTEST"],
+      );
+      await client.query(
+        `INSERT INTO forgeflow.workflow_runs (id, company_id, ticker, workflow_type, state)
+         VALUES ($1, $2, 'RETRYTEST', 'COMPANY_ANALYSIS', 'PENDING')`,
+        [workflowId, companyId],
+      );
+      await client.query(
+        "INSERT INTO forgeflow.workers (id, name, status) VALUES ($1, $2, 'RUNNING')",
+        [workerId, `worker-${workerId}`],
+      );
+      await persistTaskGraph(client, workflowId, [
+        { key: "profile", kind: "FETCH_COMPANY_PROFILE", maxAttempts: 3 },
+      ]);
+    });
+
+    const firstClaim = await claimNextTask(workerId, 60, workflowId);
+    expect(firstClaim).not.toBeNull();
+    const firstResult = await recordTaskFailure(
+      firstClaim!.taskId,
+      firstClaim!.leaseToken,
+      {
+        classification: "TRANSIENT",
+        code: "PROVIDER_TIMEOUT",
+        message: "Timed out while retrieving profile.",
+      },
+    );
+    expect(firstResult).toMatchObject({
+      retried: true,
+      retryDelaySeconds: 5,
+      workflowId,
+    });
+
+    await withTransaction((client) =>
+      client.query(
+        "UPDATE forgeflow.workflow_tasks SET available_at = now() WHERE id = $1",
+        [firstClaim!.taskId],
+      ),
+    );
+    const secondClaim = await claimNextTask(workerId, 1, workflowId);
+    expect(secondClaim?.attemptNumber).toBe(2);
+    await withTransaction((client) =>
+      client.query(
+        "UPDATE forgeflow.workflow_tasks SET lease_expires_at = now() - interval '1 second' WHERE id = $1",
+        [secondClaim!.taskId],
+      ),
+    );
+    expect(await recoverExpiredTaskLeases()).toBe(1);
+
+    const task = (
+      await withTransaction((client) => getWorkflowTasks(client, workflowId))
+    )[0];
+    expect(task).toMatchObject({
+      state: "RETRYING",
+      attemptCount: 2,
+      lastErrorCode: "LEASE_EXPIRED",
+    });
   });
 });
