@@ -1,30 +1,220 @@
 :root {
   color-scheme: light;
-  font-family: Arial, sans-serif;
+  font-family: ui-rounded, "Avenir Next", Avenir, system-ui, sans-serif;
+  color: #172126;
+  background: #edf0eb;
 }
-
 * {
   box-sizing: border-box;
 }
-
 body {
   margin: 0;
-  color: #18212f;
-  background: #f5f7fa;
 }
-
 main {
-  width: min(100% - 2rem, 70rem);
-  margin: 0 auto;
-  padding: 4rem 0;
+  width: min(100% - 2rem, 72rem);
+  margin: auto;
+  padding: 3rem 0 6rem;
 }
-
-h1 {
-  margin: 0 0 0.5rem;
+header {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 4rem;
 }
-
+.mark {
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  background: #173b34;
+  color: #ecf0d8;
+  border-radius: 50%;
+  font-weight: 800;
+}
+h1,
+h2,
+h3,
 p {
-  max-width: 65ch;
   margin: 0;
-  line-height: 1.6;
+}
+h1 {
+  font-size: clamp(1.6rem, 3vw, 2.5rem);
+  letter-spacing: -0.04em;
+}
+header p {
+  color: #52615b;
+  margin-top: 0.35rem;
+}
+.launch {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 3rem;
+  padding: 2rem 0;
+  border-block: 1px solid #aab7ad;
+}
+.launch h2,
+.workflow h2,
+.report h2 {
+  font-size: 1.25rem;
+  letter-spacing: -0.02em;
+}
+.launch p {
+  line-height: 1.55;
+  color: #46554e;
+  margin-top: 0.55rem;
+  max-width: 48ch;
+}
+form {
+  align-self: end;
+}
+label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.entry {
+  display: flex;
+  margin-top: 0.5rem;
+}
+input {
+  min-width: 0;
+  width: 100%;
+  padding: 0.85rem;
+  border: 1px solid #7d8c83;
+  background: #fafbf7;
+  font: inherit;
+  text-transform: uppercase;
+}
+button {
+  border: 0;
+  background: #d76339;
+  color: #fff;
+  padding: 0.85rem 1rem;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+button:focus-visible,
+input:focus-visible,
+a:focus-visible {
+  outline: 3px solid #1f7461;
+  outline-offset: 3px;
+}
+button:disabled {
+  opacity: 0.6;
+}
+.status {
+  margin: 1.5rem 0;
+  color: #46554e;
+}
+.workflow,
+.report {
+  margin-top: 2.5rem;
+}
+.section-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+.state,
+.kind {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: #d7e5d6;
+  color: #173b34;
+  padding: 0.3rem 0.45rem;
+}
+.workflow ol {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  border-top: 1px solid #c3ccc4;
+}
+.workflow li {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 1rem;
+  padding: 0.8rem 0;
+  border-bottom: 1px solid #c3ccc4;
+  font-size: 0.85rem;
+}
+.task-name {
+  text-transform: capitalize;
+}
+.workflow small {
+  color: #59675f;
+}
+.report {
+  display: grid;
+  gap: 1px;
+  background: #c3ccc4;
+}
+.report > h2 {
+  background: #edf0eb;
+  padding: 0 0 0.75rem;
+}
+.report article {
+  background: #fafbf7;
+  padding: 1.25rem;
+}
+.report h3 {
+  margin-top: 0.75rem;
+}
+.report article p {
+  line-height: 1.55;
+  margin-top: 0.5rem;
+  max-width: 70ch;
+}
+.sources {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+.sources a {
+  color: #1d6655;
+  text-underline-offset: 0.2em;
+  font-size: 0.85rem;
+}
+.ai_analysis {
+  background: #d8ddef;
+  color: #323c6d;
+}
+.calculation {
+  background: #f2dfb5;
+  color: #6a4b08;
+}
+.unavailable {
+  background: #e3e0dc;
+  color: #625e59;
+}
+@media (max-width: 700px) {
+  main {
+    width: min(100% - 1.25rem, 72rem);
+    padding-top: 1.5rem;
+  }
+  header {
+    margin-bottom: 2.5rem;
+  }
+  .launch {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  .workflow li {
+    grid-template-columns: 1fr auto;
+  }
+  .workflow small {
+    grid-column: 1/-1;
+  }
+  .entry {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  button {
+    width: 100%;
+  }
 }
