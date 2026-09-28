@@ -1,0 +1,11 @@
+{
+  "prices": [
+    {
+      "date": "2025-01-02",
+      "close": 410.0,
+      "adjusted_close": 409.5,
+      "currency": "USD"
+    },
+    { "date": "2025-01-03", "close": 415.0, "currency": "USD" }
+  ]
+}
