@@ -6,7 +6,57 @@ import type {
 } from "@forgeflow/schemas";
 
 import { withTransaction, type Queryable } from "./database.js";
-import { getWorkflowTasks } from "./workflow-dag.js";
+import {
+  getWorkflowTasks,
+  persistTaskGraph,
+  type WorkflowTaskDefinition,
+} from "./workflow-dag.js";
+
+export const companyAnalysisTaskGraph: readonly WorkflowTaskDefinition[] = [
+  { key: "profile", kind: "FETCH_COMPANY_PROFILE" },
+  { key: "sec_filings", kind: "FETCH_SEC_FILINGS" },
+  { key: "market_history", kind: "FETCH_MARKET_HISTORY" },
+  {
+    key: "normalize_company",
+    kind: "NORMALIZE_COMPANY_DATA",
+    dependsOn: ["profile", "sec_filings"],
+  },
+  {
+    key: "normalize_financials",
+    kind: "NORMALIZE_FINANCIAL_DATA",
+    dependsOn: ["sec_filings"],
+  },
+  {
+    key: "calculate_financials",
+    kind: "CALCULATE_FINANCIAL_METRICS",
+    dependsOn: ["normalize_financials"],
+  },
+  {
+    key: "calculate_market",
+    kind: "CALCULATE_MARKET_METRICS",
+    dependsOn: ["market_history"],
+  },
+  {
+    key: "validate_sources",
+    kind: "VALIDATE_SOURCES",
+    dependsOn: ["normalize_company", "normalize_financials", "market_history"],
+  },
+  {
+    key: "generate_analysis",
+    kind: "GENERATE_ANALYSIS",
+    dependsOn: ["calculate_financials", "calculate_market", "validate_sources"],
+  },
+  {
+    key: "assemble_report",
+    kind: "ASSEMBLE_REPORT",
+    dependsOn: ["generate_analysis", "validate_sources"],
+  },
+  {
+    key: "publish_report",
+    kind: "PUBLISH_REPORT",
+    dependsOn: ["assemble_report", "validate_sources"],
+  },
+];
 
 const terminalWorkflowStates = new Set<WorkflowState>([
   "SUCCEEDED",
@@ -106,6 +156,7 @@ export async function createCompanyAnalysisWorkflow(
 
     const created = workflowResult.rows[0];
     if (created) {
+      await persistTaskGraph(client, created.id, companyAnalysisTaskGraph);
       return toWorkflowResponse(created);
     }
 
