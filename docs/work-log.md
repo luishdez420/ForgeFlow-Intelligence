@@ -28,3 +28,4 @@ This is an append-only record of delivery evidence, decisions, failures, and def
 - Added a CI integration job that starts Compose PostgreSQL/Redis, applies migrations, and runs the integration suite.
 - Verification passed type checks; API integration tests (6 passed); API and schema unit tests (9 passed); Python worker/financial tests (4 passed); and formatting.
 - No manual testing, credentials, or live-provider access is required for this issue.
+- Pushed `08e8d0d test(workflow): add failure injection coverage` and closed #12 with the recorded evidence.
