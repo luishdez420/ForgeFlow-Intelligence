@@ -11,6 +11,7 @@ ForgeFlow is an internal analyst-team MVP for durable, source-grounded company a
 - #1–#9: architecture, ADRs, monorepo/tooling, Compose, shared contracts, initial schema, persisted workflow creation, DAG resolution, and atomic task claiming. Delivered in `0e2917e` and closed with verification evidence.
 - #10: worker runtime, registration, heartbeats, capability advertisement, draining, graceful shutdown, and PostgreSQL task claims. Delivered in `e13658e` and closed with automated and local smoke-test evidence.
 - #11: persisted retry policy, failure classification, stale-lease safety, and expired-lease recovery. Delivered in `b2d33d3` and closed with unit and PostgreSQL integration evidence.
+- #12: failure-injection coverage for crash-after-claim, duplicate delivery, retry timing, DAG propagation, and recovery. Delivered locally and awaiting its focused commit/push/closure.
 
 ## Verified working locally
 
@@ -18,6 +19,7 @@ ForgeFlow is an internal analyst-team MVP for durable, source-grounded company a
 - The API persists and retrieves workflows, supports idempotency keys, validates DAGs, and atomically claims tasks.
 - Migrations `001_initial_schema.sql` and `002_task_retry_policy.sql` are applied to the local development database.
 - Worker registration and one-shot graceful shutdown were smoke-tested against local PostgreSQL; the synthetic worker record was removed afterward.
+- The CI workflow starts Compose PostgreSQL and Redis, applies migrations, and runs the API integration suite.
 
 ## Known deferred work and blockers
 
@@ -28,4 +30,4 @@ ForgeFlow is an internal analyst-team MVP for durable, source-grounded company a
 
 ## Next planned issue
 
-#12 — workflow-engine integration and failure-injection tests, after #11 is delivered.
+#13 — source, document, and provenance model, after #12 is delivered.

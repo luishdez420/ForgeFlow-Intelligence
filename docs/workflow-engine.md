@@ -40,3 +40,13 @@ Workflow definitions are server-owned. Their dependencies are persisted at
 creation, checked for cycles, and resolved atomically after each task reaches a
 terminal state. Failure blocks dependent work and yields an explainable final
 workflow state rather than silently skipping work.
+
+## Failure-injection coverage
+
+The Compose-backed integration suite forces lease expiry instead of sleeping to
+test retry-time advancement deterministically. It proves that a crash after a
+claim creates a later delivery attempt, that a stale lease token cannot alter
+that new attempt, and that a duplicate delivery can use an authoritative unique
+key to persist its effect once. It also covers contention, fan-in release, and
+terminal dependency cancellation. These tests demonstrate at-least-once task
+execution; they do not claim exactly-once external provider calls.
