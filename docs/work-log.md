@@ -35,3 +35,9 @@ This is an append-only record of delivery evidence, decisions, failures, and def
 - Added deterministic SHA-256 content identity, credential-free HTTPS source URL validation, idempotent source/document persistence, append-only facts, and idempotent report-item source links.
 - Integration coverage proves repeated identical source content resolves to one source, provenance links remain available, and contradictory facts persist independently.
 - Verification passed API type checks, API/schema unit tests (11 passed), PostgreSQL integration tests (7 passed), and formatting.
+
+## 2026-09-28 — Issues #14–#20 delivery update
+
+- Closed #14 through #19 after fixture, unit, integration, and type-check evidence; each implementation was committed and pushed separately.
+- Delivered the Issue #20 analyst console in `88e2cb5`: ticker submission, persisted workflow display, typed report sections, source links, responsive states, and safe plain-text rendering.
+- Web production build, workspace type checks/tests, and the interface detector passed. Playwright is not installed, so browser E2E and the UI-level controlled worker-recovery acceptance scenario are outstanding; #20 remains open.

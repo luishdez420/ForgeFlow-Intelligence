@@ -12,7 +12,12 @@ ForgeFlow is an internal analyst-team MVP for durable, source-grounded company a
 - #10: worker runtime, registration, heartbeats, capability advertisement, draining, graceful shutdown, and PostgreSQL task claims. Delivered in `e13658e` and closed with automated and local smoke-test evidence.
 - #11: persisted retry policy, failure classification, stale-lease safety, and expired-lease recovery. Delivered in `b2d33d3` and closed with unit and PostgreSQL integration evidence.
 - #12: failure-injection coverage for crash-after-claim, duplicate delivery, retry timing, DAG propagation, and recovery. Delivered in `08e8d0d` and closed with Compose-backed integration evidence.
-- #13: immutable provenance persistence, deterministic content hashes, safe source URL validation, and contradiction-preserving facts. Delivered locally and awaiting commit/push/closure.
+- #13: immutable provenance persistence, deterministic content hashes, safe source URL validation, and contradiction-preserving facts. Delivered in `3abe886` and closed.
+- #14–#19: SEC/market ingestion, normalization, deterministic metrics, company-analysis DAG, and source-grounded report persistence. Delivered and closed through `b7b9919`.
+
+## In delivery
+
+- #20: analyst workflow console delivered in `88e2cb5`. The required Playwright browser acceptance suite and controlled UI recovery scenario remain unverified because Playwright is not installed/configured.
 
 ## Verified working locally
 
@@ -31,4 +36,4 @@ ForgeFlow is an internal analyst-team MVP for durable, source-grounded company a
 
 ## Next planned issue
 
-#14 — SEC EDGAR provider adapter, after #13 is delivered.
+#20 — add and run the browser acceptance suite before closing the MVP web-flow issue.
