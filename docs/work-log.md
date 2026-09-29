@@ -53,5 +53,12 @@ This is an append-only record of delivery evidence, decisions, failures, and def
 
 - Added pilot ADRs for managed AWS deployment, Google Workspace invite-only access, and live SEC/constrained OpenAI boundaries.
 - Added the infrastructure/security review checklist required before Terraform provisioning begins.
-- Documentation validation is pending the focused commit; no cloud, OAuth, SEC, or OpenAI credential was introduced.
+- Formatting passed; no cloud, OAuth, SEC, or OpenAI credential was introduced.
 - Pushed `09100a8 docs: define pilot release architecture` and closed #21 with the recorded evidence.
+
+## 2026-09-29 — Issue #22 Terraform foundation delivered pending AWS activation
+
+- Added parameterized Terraform for two-AZ VPC networking, private RDS PostgreSQL and Redis, ECS/ECR foundations, CloudWatch logs, Secrets Manager placeholders, an ECS task execution role, and optional Route53-backed ACM validation.
+- Added an encrypted remote-state backend contract, example backend/environment configuration, secret-safe ignore rules, and pull-request/main-branch Terraform validation workflow.
+- Verification passed Terraform 1.9.8 formatting and `terraform validate` with AWS provider 5.100.0, plus repository formatting.
+- The issue remains open because no AWS account bootstrap, remote state, DNS, authorized plan review, or staging apply/smoke evidence was available locally. The operator walkthrough is in `infrastructure/README.md`.

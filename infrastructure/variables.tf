@@ -1,0 +1,58 @@
+variable "aws_region" {
+  type = string
+}
+
+variable "environment" {
+  type = string
+  validation {
+    condition     = contains(["staging", "production"], var.environment)
+    error_message = "environment must be staging or production."
+  }
+}
+variable "vpc_cidr" {
+  type = string
+}
+
+variable "availability_zones" {
+  type = list(string)
+
+  validation {
+    condition     = length(var.availability_zones) == 2
+    error_message = "availability_zones must include exactly two zones."
+  }
+}
+
+variable "database_name" {
+  type    = string
+  default = "forgeflow"
+}
+
+variable "database_master_username" {
+  type    = string
+  default = "forgeflow_migrator"
+}
+
+variable "database_master_password" {
+  type      = string
+  sensitive = true
+}
+
+variable "redis_auth_token" {
+  type      = string
+  sensitive = true
+}
+
+variable "deletion_protection" {
+  type    = bool
+  default = true
+}
+
+variable "domain_name" {
+  type    = string
+  default = null
+}
+
+variable "route53_zone_id" {
+  type    = string
+  default = null
+}

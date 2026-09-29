@@ -17,8 +17,7 @@ ForgeFlow is an internal analyst-team MVP for durable, source-grounded company a
 
 ## In delivery
 
-- #20: analyst workflow console, browser acceptance suite, and controlled worker-recovery evidence delivered in `0598075` and closed.
-- #21: pilot AWS, access, external-data, and AI architecture decisions delivered in `09100a8` and closed.
+- #22: Terraform foundation for isolated staging and production pilot environments is implemented and statically validated. AWS account bootstrap, remote-state setup, DNS selection, `terraform plan` review, and apply/smoke evidence remain required before the issue can close.
 
 ## Verified working locally
 
@@ -30,11 +29,10 @@ ForgeFlow is an internal analyst-team MVP for durable, source-grounded company a
 
 ## Known deferred work and blockers
 
-- No live SEC EDGAR adapter yet; that is Issue #14.
-- No market-data vendor, credentials, or licensing decision yet; Issue #15 keeps this behind an adapter.
-- No LLM provider/key is configured; source-grounded AI generation is deferred to Issue #19.
-- No blocker currently prevents the workflow-engine work. External provider choices become relevant only for their dependent issues.
+- No approved market-data vendor, credentials, or license exists; market-derived information remains explicitly unavailable.
+- No live SEC EDGAR or OpenAI credentials are configured. Those integrations remain disabled until their production-hardening issues.
+- Issue #22 cannot close until an authorized operator completes the documented AWS bootstrap and staging apply/smoke test.
 
 ## Next planned issue
 
-#22 — provision Terraform-managed AWS pilot infrastructure, after #21 closes.
+#22 — complete the AWS account bootstrap and staging Terraform plan/apply evidence.
