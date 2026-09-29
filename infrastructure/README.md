@@ -28,8 +28,8 @@ CI/CD; this issue intentionally does not deploy application containers.
 terraform -chdir=infrastructure init -backend-config=/secure/path/staging.tfbackend
 terraform -chdir=infrastructure fmt -check -recursive
 terraform -chdir=infrastructure validate
-terraform -chdir=infrastructure plan -var-file=staging.tfvars
-terraform -chdir=infrastructure apply -var-file=staging.tfvars
+terraform -chdir=infrastructure plan -var-file=/secure/path/staging.tfvars
+terraform -chdir=infrastructure apply -var-file=/secure/path/staging.tfvars
 ```
 
 Do not apply production until the staging plan has been reviewed. Record the
