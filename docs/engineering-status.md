@@ -18,7 +18,7 @@ ForgeFlow is an internal analyst-team MVP for durable, source-grounded company a
 ## In delivery
 
 - #20: analyst workflow console, browser acceptance suite, and controlled worker-recovery evidence delivered in `0598075` and closed.
-- #21: pilot AWS, access, external-data, and AI architecture decisions documented locally; awaiting focused commit/push/closure.
+- #21: pilot AWS, access, external-data, and AI architecture decisions delivered in `09100a8` and closed.
 
 ## Verified working locally
 

@@ -54,3 +54,4 @@ This is an append-only record of delivery evidence, decisions, failures, and def
 - Added pilot ADRs for managed AWS deployment, Google Workspace invite-only access, and live SEC/constrained OpenAI boundaries.
 - Added the infrastructure/security review checklist required before Terraform provisioning begins.
 - Documentation validation is pending the focused commit; no cloud, OAuth, SEC, or OpenAI credential was introduced.
+- Pushed `09100a8 docs: define pilot release architecture` and closed #21 with the recorded evidence.
