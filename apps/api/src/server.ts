@@ -100,11 +100,18 @@ const server = createServer(async (request, response) => {
     }
     const reportMatch = pathname.match(/^\/reports\/([0-9a-f-]{36})$/i);
     if (request.method === "GET" && reportMatch) {
-      sendJson(response, 200, reportDetailSchema.parse(await getReport(reportMatch[1])));
+      sendJson(
+        response,
+        200,
+        reportDetailSchema.parse(await getReport(reportMatch[1])),
+      );
       return;
     }
   } catch (error) {
-    if (error instanceof WorkflowNotFoundError || error instanceof ReportNotFoundError) {
+    if (
+      error instanceof WorkflowNotFoundError ||
+      error instanceof ReportNotFoundError
+    ) {
       sendJson(
         response,
         404,

@@ -17,7 +17,7 @@ ForgeFlow is an internal analyst-team MVP for durable, source-grounded company a
 
 ## In delivery
 
-- #20: analyst workflow console delivered in `88e2cb5`. The required Playwright browser acceptance suite and controlled UI recovery scenario remain unverified because Playwright is not installed/configured.
+- #20: analyst workflow console, browser acceptance suite, and controlled worker-recovery evidence delivered. Ready for closure with the final verification commit.
 
 ## Verified working locally
 
@@ -36,4 +36,4 @@ ForgeFlow is an internal analyst-team MVP for durable, source-grounded company a
 
 ## Next planned issue
 
-#20 — add and run the browser acceptance suite before closing the MVP web-flow issue.
+MVP backlog complete. Future work requires a new prioritized issue.

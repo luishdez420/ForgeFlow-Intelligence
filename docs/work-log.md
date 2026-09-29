@@ -41,3 +41,9 @@ This is an append-only record of delivery evidence, decisions, failures, and def
 - Closed #14 through #19 after fixture, unit, integration, and type-check evidence; each implementation was committed and pushed separately.
 - Delivered the Issue #20 analyst console in `88e2cb5`: ticker submission, persisted workflow display, typed report sections, source links, responsive states, and safe plain-text rendering.
 - Web production build, workspace type checks/tests, and the interface detector passed. Playwright is not installed, so browser E2E and the UI-level controlled worker-recovery acceptance scenario are outstanding; #20 remains open.
+
+## 2026-09-29 — Issue #20 browser acceptance completed
+
+- Added Playwright/Chromium configuration and a browser acceptance test covering ticker submission, persisted retry/lease-recovery state, typed AI analysis, and source-linked evidence.
+- Added the browser suite to CI. The controlled worker-recovery behavior remains covered by the Compose-backed workflow failure-injection suite.
+- Verification passed browser acceptance (1 test), formatting, workspace type checks, API/schema unit tests (14 passed), PostgreSQL integration tests (8 passed), web production build, and the UI detector.

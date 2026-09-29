@@ -44,3 +44,15 @@ jobs:
       - run: docker compose up --detach --wait postgres redis
       - run: npm --workspace @forgeflow/api run db:migrate
       - run: npm --workspace @forgeflow/api run test:integration
+
+  browser-acceptance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e

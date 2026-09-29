@@ -76,6 +76,9 @@ web_modules/
 **/__pycache__/
 *.egg-info/
 .parcel-cache
+test-results/
+playwright-report/
+apps/web/.impeccable/
 
 # Next.js build output
 .next
