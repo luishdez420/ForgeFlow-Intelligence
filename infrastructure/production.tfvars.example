@@ -2,8 +2,7 @@ aws_region               = "us-east-1"
 environment              = "production"
 vpc_cidr                 = "10.41.0.0/20"
 availability_zones       = ["us-east-1a", "us-east-1b"]
-database_master_password = "set-through-TF_VAR_database_master_password"
-redis_auth_token         = "set-through-TF_VAR_redis_auth_token"
 deletion_protection      = true
+# Set database_master_password and redis_auth_token only through TF_VAR_*.
 # domain_name = "forgeflow.example.com"
 # route53_zone_id = "Z123456789"
