@@ -1,6 +1,6 @@
 # Engineering status
 
-Last updated: 2026-09-28
+Last updated: 2026-09-29
 
 ## Product state
 
@@ -18,6 +18,7 @@ ForgeFlow is an internal analyst-team MVP for durable, source-grounded company a
 ## In delivery
 
 - #20: analyst workflow console, browser acceptance suite, and controlled worker-recovery evidence delivered in `0598075` and closed.
+- #21: pilot AWS, access, external-data, and AI architecture decisions documented locally; awaiting focused commit/push/closure.
 
 ## Verified working locally
 
@@ -36,4 +37,4 @@ ForgeFlow is an internal analyst-team MVP for durable, source-grounded company a
 
 ## Next planned issue
 
-MVP backlog complete. Future work requires a new prioritized issue.
+#22 — provision Terraform-managed AWS pilot infrastructure, after #21 closes.

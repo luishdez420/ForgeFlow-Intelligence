@@ -48,3 +48,9 @@ This is an append-only record of delivery evidence, decisions, failures, and def
 - Added the browser suite to CI. The controlled worker-recovery behavior remains covered by the Compose-backed workflow failure-injection suite.
 - Verification passed browser acceptance (1 test), formatting, workspace type checks, API/schema unit tests (14 passed), PostgreSQL integration tests (8 passed), web production build, and the UI detector.
 - Pushed `0598075 test(web): add browser acceptance coverage` and closed #20 with the recorded evidence.
+
+## 2026-09-29 — Issue #21 pilot architecture completed locally
+
+- Added pilot ADRs for managed AWS deployment, Google Workspace invite-only access, and live SEC/constrained OpenAI boundaries.
+- Added the infrastructure/security review checklist required before Terraform provisioning begins.
+- Documentation validation is pending the focused commit; no cloud, OAuth, SEC, or OpenAI credential was introduced.

@@ -19,11 +19,11 @@ report contains source-linked facts, reproducible calculations, source-grounded
 AI analysis, and explicit unavailable values. A controlled worker crash is
 recovered through a lease timeout and retry.
 
-### Explicitly deferred
+### Remaining deferred scope
 
-- Authentication, RBAC, multi-tenancy, and user-owned portfolios.
+- Multi-tenancy and user-owned portfolios.
 - Company comparison, paper trading, backtesting, and real-money trading.
-- Kubernetes, Kafka, Terraform, cloud deployment, and generated-code sandboxing.
+- Kubernetes, Kafka, and generated-code sandboxing.
 - Generic user-authored workflows and unrestricted agent tools.
 
 ## Components
@@ -92,6 +92,17 @@ be idempotent. Database writes use unique effect keys and transactional state
 changes to provide effectively-once persistence for designed operations. The
 system does not claim exactly-once execution for provider calls or any external
 side effect.
+
+## Pilot release extension
+
+The invite-only pilot adds AWS-managed deployment, Google Workspace SSO, and
+constrained OpenAI explanation while preserving durable workflow and provenance
+boundaries. Decisions are recorded in
+[ADR-006](adr/ADR-006-aws-pilot-topology.md),
+[ADR-007](adr/ADR-007-google-workspace-access.md), and
+[ADR-008](adr/ADR-008-external-data-and-ai-pilot-boundary.md). Live SEC EDGAR
+is allowed only through the configured compliance boundary; market data remains
+explicitly unavailable until a licensed vendor is approved.
 
 ## MVP success criteria
 
