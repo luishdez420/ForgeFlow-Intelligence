@@ -47,3 +47,4 @@ This is an append-only record of delivery evidence, decisions, failures, and def
 - Added Playwright/Chromium configuration and a browser acceptance test covering ticker submission, persisted retry/lease-recovery state, typed AI analysis, and source-linked evidence.
 - Added the browser suite to CI. The controlled worker-recovery behavior remains covered by the Compose-backed workflow failure-injection suite.
 - Verification passed browser acceptance (1 test), formatting, workspace type checks, API/schema unit tests (14 passed), PostgreSQL integration tests (8 passed), web production build, and the UI detector.
+- Pushed `0598075 test(web): add browser acceptance coverage` and closed #20 with the recorded evidence.

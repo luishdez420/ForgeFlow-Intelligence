@@ -17,7 +17,7 @@ ForgeFlow is an internal analyst-team MVP for durable, source-grounded company a
 
 ## In delivery
 
-- #20: analyst workflow console, browser acceptance suite, and controlled worker-recovery evidence delivered. Ready for closure with the final verification commit.
+- #20: analyst workflow console, browser acceptance suite, and controlled worker-recovery evidence delivered in `0598075` and closed.
 
 ## Verified working locally
 
