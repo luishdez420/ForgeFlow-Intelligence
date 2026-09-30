@@ -78,3 +78,10 @@ This is an append-only record of delivery evidence, decisions, failures, and def
 - Added a restore and recovery runbook covering isolated point-in-time restoration, runtime-role smoke checks, evidence capture, and forward-only migration recovery.
 - Verification passed Terraform formatting and validation in a local container, repository formatting, workspace type checks, API tests (12 passed, 8 integration tests skipped), and a local PostgreSQL role smoke test. The runtime role had schema usage and table-read access but no schema-create access.
 - No Terraform apply, AWS restore, ECR push, GitHub Actions run, or GitHub issue mutation occurred. AWS restore evidence remains the required manual gate for #24.
+
+## 2026-09-30 — Issue #25 Google Workspace SSO delivered locally
+
+- Added Auth.js Google provider configuration, a verified-email Workspace-domain allow-list, a fail-closed sign-in page, and server-side session protection for the analyst console.
+- Added environment-variable placeholders only; no OAuth client, session secret, or Workspace domain was introduced into the repository.
+- Verification passed web type checks, Google-domain policy tests (2 passed), the Next.js production build, and formatting.
+- Google OAuth callback/domain rejection/session-expiry browser tests remain blocked on a manually configured Google Cloud OAuth client and non-local callback URL. No GitHub Actions or external provider was invoked.

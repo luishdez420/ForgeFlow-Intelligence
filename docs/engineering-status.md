@@ -20,6 +20,7 @@ ForgeFlow is an internal analyst-team MVP for durable, source-grounded company a
 - #22: Terraform foundation for isolated staging and production pilot environments is implemented and statically validated. AWS account bootstrap, remote-state setup, DNS selection, `terraform plan` review, and apply/smoke evidence remain required before the issue can close.
 - #23: local release artifacts are implemented: API/web/worker Docker images, immutable revision labels, migration compatibility guard, ECS task-definition templates, and a manual-only release workflow. No image was pushed, workflow run was triggered, AWS deployment was attempted, or GitHub issue was updated.
 - #24: local database lifecycle controls are implemented: configurable RDS backup/maintenance windows, snapshot tags, a constrained runtime role bootstrap, and a recovery runbook. AWS backup restoration and production-role verification remain external tests.
+- #25: Auth.js Google sign-in is configured locally with verified Workspace-domain enforcement and a server-side protected analyst route. OAuth credentials and a real Google callback test remain external setup work.
 
 ## Verified working locally
 
@@ -36,7 +37,8 @@ ForgeFlow is an internal analyst-team MVP for durable, source-grounded company a
 - Issue #22 cannot close until an authorized operator completes the documented AWS bootstrap and staging apply/smoke test.
 - #23 cannot close until an operator chooses a paid AWS environment, configures the documented GitHub environment variables/OIDC role/ECS services, and completes a staging deployment, failed-migration, and rollback drill. GitHub Actions work is intentionally paused until the account's minutes reset.
 - #24 cannot close until an authorized operator applies the RDS controls and performs the documented staged point-in-time restore drill against AWS.
+- #25 cannot close until a Google Cloud OAuth client, `AUTH_SECRET`, and an approved Workspace domain are configured in a non-local environment and the sign-in/callback/session-expiry browser tests run.
 
 ## Next planned issue
 
-#24 — preserve local database recovery work while awaiting the explicitly deferred AWS deployment decision and restore drill.
+#25 — preserve local SSO work while awaiting Google OAuth configuration and the explicitly deferred pilot deployment decision.
