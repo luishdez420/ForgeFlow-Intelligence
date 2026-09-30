@@ -62,3 +62,11 @@ This is an append-only record of delivery evidence, decisions, failures, and def
 - Added an encrypted remote-state backend contract, example backend/environment configuration, secret-safe ignore rules, and pull-request/main-branch Terraform validation workflow.
 - Verification passed Terraform 1.9.8 formatting and `terraform validate` with AWS provider 5.100.0, plus repository formatting.
 - The issue remains open because no AWS account bootstrap, remote state, DNS, authorized plan review, or staging apply/smoke evidence was available locally. The operator walkthrough is in `infrastructure/README.md`.
+
+## 2026-09-30 — Issue #23 local release artifacts delivered; cloud release deferred
+
+- Added local Docker definitions for the API, Next.js standalone web console, and Python worker. Each accepts a build revision label; the worker uses an entrypoint so runtime flags can be supplied safely.
+- Added a manual-only `workflow_dispatch` release workflow. When eventually configured and dispatched, it uses OIDC, pushes commit-SHA-tagged images to immutable ECR repositories, runs the migration task before service rollout, and rolls ECS services back to their prior task definitions on a rollout failure.
+- Added ECS Fargate task-definition templates plus checks that required image revision labels and image placeholders remain present. Added a guard that rejects edits to already-applied numbered SQL migrations.
+- Verification passed repository formatting; migration and container-contract checks; workspace type checks; API tests (10 passed, 8 integration tests skipped); schema tests (4 passed); local API health response; local web response; and worker command help. All three local Docker images built successfully with the `release-test` revision label.
+- No ECR image was pushed, no GitHub Actions workflow was run, no AWS infrastructure was applied, and no GitHub issue was modified. Deployment is intentionally paused because the account must remain on its free plan and GitHub Actions minutes are exhausted until reset.

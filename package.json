@@ -20,6 +20,8 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "test:e2e": "playwright test",
+    "release:check-migrations": "node scripts/check-migration-compatibility.mjs",
+    "release:check-containers": "node scripts/verify-container-contract.mjs",
     "format:check": "prettier --check .",
     "format": "prettier --write ."
   },

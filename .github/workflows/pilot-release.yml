@@ -1,0 +1,150 @@
+name: Pilot release
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        required: true
+        type: choice
+        options: [staging, production]
+      confirmation:
+        description: Type DEPLOY to authorize this manual release
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: forgeflow-release-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: inputs.confirmation == 'DEPLOY'
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      TARGET_ENV: ${{ inputs.environment }}
+      NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
+      AWS_DEPLOY_ROLE_ARN: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+      DATABASE_SECRET_ARN: ${{ vars.DATABASE_SECRET_ARN }}
+      ECS_CLUSTER: ${{ vars.ECS_CLUSTER }}
+      ECS_SUBNETS: ${{ vars.ECS_SUBNETS }}
+      ECS_SECURITY_GROUP: ${{ vars.ECS_SECURITY_GROUP }}
+      ECS_TASK_EXECUTION_ROLE_ARN: ${{ vars.ECS_TASK_EXECUTION_ROLE_ARN }}
+      ECS_TASK_ROLE_ARN: ${{ vars.ECS_TASK_ROLE_ARN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run release:check-containers
+      - run: MIGRATION_BASE_REF=origin/main npm run release:check-migrations
+      - name: Validate release configuration
+        run: |
+          test -n "$AWS_REGION"
+          test -n "$AWS_DEPLOY_ROLE_ARN"
+          test -n "$NEXT_PUBLIC_API_URL"
+          test -n "$DATABASE_SECRET_ARN"
+          test -n "$ECS_CLUSTER"
+          test -n "$ECS_SUBNETS"
+          test -n "$ECS_SECURITY_GROUP"
+          test -n "$ECS_TASK_EXECUTION_ROLE_ARN"
+          test -n "$ECS_TASK_ROLE_ARN"
+      - uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: ${{ env.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      - id: build-api
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          push: true
+          build-args: BUILD_REVISION=${{ github.sha }}
+          tags: ${{ steps.ecr.outputs.registry }}/forgeflow-${{ inputs.environment }}-api:${{ github.sha }}
+      - id: build-web
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/web/Dockerfile
+          push: true
+          build-args: |
+            BUILD_REVISION=${{ github.sha }}
+            NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL }}
+          tags: ${{ steps.ecr.outputs.registry }}/forgeflow-${{ inputs.environment }}-web:${{ github.sha }}
+      - id: build-worker
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: services/worker/Dockerfile
+          push: true
+          build-args: BUILD_REVISION=${{ github.sha }}
+          tags: ${{ steps.ecr.outputs.registry }}/forgeflow-${{ inputs.environment }}-worker:${{ github.sha }}
+      - name: Run compatibility-checked migration
+        env:
+          IMAGE_URI: ${{ steps.ecr.outputs.registry }}/forgeflow-${{ inputs.environment }}-api@${{ steps.build-api.outputs.digest }}
+        run: |
+          sed \
+            -e "s|API_ENV|${TARGET_ENV}|g" \
+            -e "s|AWS_REGION|${AWS_REGION}|g" \
+            -e "s|TASK_EXECUTION_ROLE_ARN|${ECS_TASK_EXECUTION_ROLE_ARN}|g" \
+            -e "s|TASK_ROLE_ARN|${ECS_TASK_ROLE_ARN}|g" \
+            -e "s|DATABASE_SECRET_ARN|${DATABASE_SECRET_ARN}|g" \
+            -e "s|IMAGE_URI|${IMAGE_URI}|g" \
+            deploy/task-definitions/migration.json > migration-task.json
+          task_definition=$(aws ecs register-task-definition --cli-input-json file://migration-task.json --query 'taskDefinition.taskDefinitionArn' --output text)
+          task_arn=$(aws ecs run-task --cluster "$ECS_CLUSTER" --launch-type FARGATE --task-definition "$task_definition" --network-configuration "awsvpcConfiguration={subnets=[$ECS_SUBNETS],securityGroups=[$ECS_SECURITY_GROUP],assignPublicIp=DISABLED}" --query 'tasks[0].taskArn' --output text)
+          aws ecs wait tasks-stopped --cluster "$ECS_CLUSTER" --tasks "$task_arn"
+          test "$(aws ecs describe-tasks --cluster "$ECS_CLUSTER" --tasks "$task_arn" --query 'tasks[0].containers[0].exitCode' --output text)" = "0"
+      - name: Deploy service revisions with rollback
+        env:
+          API_IMAGE_URI: ${{ steps.ecr.outputs.registry }}/forgeflow-${{ inputs.environment }}-api@${{ steps.build-api.outputs.digest }}
+          WEB_IMAGE_URI: ${{ steps.ecr.outputs.registry }}/forgeflow-${{ inputs.environment }}-web@${{ steps.build-web.outputs.digest }}
+          WORKER_IMAGE_URI: ${{ steps.ecr.outputs.registry }}/forgeflow-${{ inputs.environment }}-worker@${{ steps.build-worker.outputs.digest }}
+        run: |
+          set -euo pipefail
+          declare -A previous_task_definitions
+
+          for service in api web worker; do
+            previous_task_definitions[$service]=$(aws ecs describe-services --cluster "$ECS_CLUSTER" --services "forgeflow-${TARGET_ENV}-${service}" --query 'services[0].taskDefinition' --output text)
+          done
+
+          rollback() {
+            for service in api web worker; do
+              aws ecs update-service --cluster "$ECS_CLUSTER" --service "forgeflow-${TARGET_ENV}-${service}" --task-definition "${previous_task_definitions[$service]}" --force-new-deployment
+            done
+          }
+
+          trap rollback ERR
+
+          for service in api web worker; do
+            case "$service" in
+              api) image_uri="$API_IMAGE_URI" ;;
+              web) image_uri="$WEB_IMAGE_URI" ;;
+              worker) image_uri="$WORKER_IMAGE_URI" ;;
+            esac
+            sed \
+              -e "s|API_ENV|${TARGET_ENV}|g" \
+              -e "s|AWS_REGION|${AWS_REGION}|g" \
+              -e "s|TASK_EXECUTION_ROLE_ARN|${ECS_TASK_EXECUTION_ROLE_ARN}|g" \
+              -e "s|TASK_ROLE_ARN|${ECS_TASK_ROLE_ARN}|g" \
+              -e "s|DATABASE_SECRET_ARN|${DATABASE_SECRET_ARN}|g" \
+              -e "s|IMAGE_URI|${image_uri}|g" \
+              "deploy/task-definitions/${service}.json" > "${service}-task.json"
+            task_definition=$(aws ecs register-task-definition --cli-input-json "file://${service}-task.json" --query 'taskDefinition.taskDefinitionArn' --output text)
+            aws ecs update-service --cluster "$ECS_CLUSTER" --service "forgeflow-${TARGET_ENV}-${service}" --task-definition "$task_definition" --force-new-deployment
+            aws ecs wait services-stable --cluster "$ECS_CLUSTER" --services "forgeflow-${TARGET_ENV}-${service}"
+          done
+
+          trap - ERR
