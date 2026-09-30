@@ -3,6 +3,9 @@ environment              = "production"
 vpc_cidr                 = "10.41.0.0/20"
 availability_zones       = ["us-east-1a", "us-east-1b"]
 deletion_protection      = true
+backup_retention_days    = 35
+backup_window            = "03:00-03:30"
+maintenance_window       = "sun:04:00-sun:04:30"
 # Set database_master_password and redis_auth_token only through TF_VAR_*.
 # domain_name = "forgeflow.example.com"
 # route53_zone_id = "Z123456789"

@@ -120,7 +120,10 @@ resource "aws_db_instance" "pilot" {
   password                   = var.database_master_password
   db_subnet_group_name       = aws_db_subnet_group.pilot.name
   vpc_security_group_ids     = [aws_security_group.database.id]
-  backup_retention_period    = 14
+  backup_retention_period    = var.backup_retention_days
+  backup_window              = var.backup_window
+  maintenance_window         = var.maintenance_window
+  copy_tags_to_snapshot      = true
   deletion_protection        = var.deletion_protection
   skip_final_snapshot        = !var.deletion_protection
   publicly_accessible        = false

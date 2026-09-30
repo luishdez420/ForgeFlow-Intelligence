@@ -70,3 +70,11 @@ This is an append-only record of delivery evidence, decisions, failures, and def
 - Added ECS Fargate task-definition templates plus checks that required image revision labels and image placeholders remain present. Added a guard that rejects edits to already-applied numbered SQL migrations.
 - Verification passed repository formatting; migration and container-contract checks; workspace type checks; API tests (10 passed, 8 integration tests skipped); schema tests (4 passed); local API health response; local web response; and worker command help. All three local Docker images built successfully with the `release-test` revision label.
 - No ECR image was pushed, no GitHub Actions workflow was run, no AWS infrastructure was applied, and no GitHub issue was modified. Deployment is intentionally paused because the account must remain on its free plan and GitHub Actions minutes are exhausted until reset.
+
+## 2026-09-30 — Issue #24 database lifecycle controls delivered locally
+
+- Added configurable RDS backup retention, backup window, maintenance window, and snapshot tag copying. Staging defaults to 7 retained backup days; production defaults to 35.
+- Added a controlled bootstrap command that creates a non-superuser application login and grants it only the runtime group role's DML, sequence, and schema-usage permissions; the migration owner remains separate.
+- Added a restore and recovery runbook covering isolated point-in-time restoration, runtime-role smoke checks, evidence capture, and forward-only migration recovery.
+- Verification passed Terraform formatting and validation in a local container, repository formatting, workspace type checks, API tests (12 passed, 8 integration tests skipped), and a local PostgreSQL role smoke test. The runtime role had schema usage and table-read access but no schema-create access.
+- No Terraform apply, AWS restore, ECR push, GitHub Actions run, or GitHub issue mutation occurred. AWS restore evidence remains the required manual gate for #24.
