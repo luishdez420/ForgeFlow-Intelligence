@@ -7,5 +7,8 @@ export default defineConfig({
     command: "npm --workspace @forgeflow/web run dev -- --port 3000",
     url: "http://localhost:3000",
     reuseExistingServer: false,
+    env: {
+      AUTH_SECRET: "playwright-test-secret-not-for-production",
+    },
   },
 });

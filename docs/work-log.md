@@ -85,3 +85,10 @@ This is an append-only record of delivery evidence, decisions, failures, and def
 - Added environment-variable placeholders only; no OAuth client, session secret, or Workspace domain was introduced into the repository.
 - Verification passed web type checks, Google-domain policy tests (2 passed), the Next.js production build, and formatting.
 - Google OAuth callback/domain rejection/session-expiry browser tests remain blocked on a manually configured Google Cloud OAuth client and non-local callback URL. No GitHub Actions or external provider was invoked.
+
+## 2026-10-01 — CI repair and release artifacts pushed
+
+- Pushed the previously verified local commits for #23, #24, and #25 to `main`: `5db571d`, `46baf1b`, and `33e93e4`.
+- Terraform's GitHub validation workflow completed successfully. The initial repository CI run failed only in the browser acceptance test because that test still expected the now-protected analyst console to be public.
+- Replaced that obsolete expectation with a browser test for the intended fail-closed behavior: an unauthenticated visitor is redirected to `/sign-in` and sees the unconfigured Google Workspace state. The Playwright web server receives a test-only `AUTH_SECRET`; the application has no production fallback secret.
+- Verification passed repository formatting, workspace type checks, API/schema tests, the browser suite, and `git diff --check`. The CI repair is ready to commit and push; the resulting GitHub run will be recorded before proceeding with #26.
