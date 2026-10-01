@@ -32,4 +32,34 @@ describe("Google Workspace access policy", () => {
       ),
     ).toBe(false);
   });
+
+  it("allows one explicit verified test identity only during local development", () => {
+    expect(
+      isAllowedWorkspaceIdentity(
+        "lahr730@gmail.com",
+        true,
+        undefined,
+        "lahr730@gmail.com",
+        true,
+      ),
+    ).toBe(true);
+    expect(
+      isAllowedWorkspaceIdentity(
+        "other@gmail.com",
+        true,
+        undefined,
+        "lahr730@gmail.com",
+        true,
+      ),
+    ).toBe(false);
+    expect(
+      isAllowedWorkspaceIdentity(
+        "lahr730@gmail.com",
+        true,
+        undefined,
+        "lahr730@gmail.com",
+        false,
+      ),
+    ).toBe(false);
+  });
 });

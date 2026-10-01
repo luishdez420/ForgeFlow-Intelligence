@@ -4,7 +4,9 @@ export default function SignInPage() {
   const configured = Boolean(
     process.env.AUTH_GOOGLE_ID &&
     process.env.AUTH_GOOGLE_SECRET &&
-    process.env.GOOGLE_WORKSPACE_DOMAIN,
+    (process.env.GOOGLE_WORKSPACE_DOMAIN ||
+      (process.env.NODE_ENV === "development" &&
+        process.env.GOOGLE_ALLOWED_TEST_EMAIL)),
   );
 
   return (

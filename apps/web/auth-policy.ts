@@ -2,11 +2,18 @@ export function isAllowedWorkspaceIdentity(
   email: string | null | undefined,
   emailVerified: boolean | null | undefined,
   workspaceDomain: string | undefined,
+  allowedTestEmail: string | undefined = undefined,
+  isDevelopment = process.env.NODE_ENV === "development",
 ): boolean {
   const normalizedDomain = workspaceDomain?.trim().toLowerCase();
-  if (!email || !emailVerified || !normalizedDomain) {
+  const normalizedEmail = email?.trim().toLowerCase();
+  if (!normalizedEmail || !emailVerified) {
     return false;
   }
-
-  return email.trim().toLowerCase().endsWith(`@${normalizedDomain}`);
+  if (normalizedDomain) {
+    return normalizedEmail.endsWith(`@${normalizedDomain}`);
+  }
+  return (
+    isDevelopment && normalizedEmail === allowedTestEmail?.trim().toLowerCase()
+  );
 }

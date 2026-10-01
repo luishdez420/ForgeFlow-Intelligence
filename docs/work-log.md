@@ -108,3 +108,7 @@ This is an append-only record of delivery evidence, decisions, failures, and def
 - Added origin enforcement for browser mutations, web security headers, no-store API responses, and signature-tampering coverage. The `FORGEFLOW_INTERNAL_API_SECRET` and `APP_ORIGIN` environment variables are documented but deliberately unset.
 - Verification passed formatting, all workspace type checks, API/schema/web unit tests (26 non-integration tests), the Next.js production build, browser acceptance (1 passed), and `git diff --check`. #26's pushed CI run also completed successfully.
 - A live sign-in, cross-user access, and CSRF test remains a manual pre-release gate: configure Google OAuth, an active allow-listed analyst/admin, matching web/API shared secret, and the deployed HTTPS origin before closing #27.
+
+## 2026-10-01 — Local personal-account SSO test path
+
+- Added a development-only explicit Google email allow-list for a personal-account test. It is ignored outside `NODE_ENV=development`; staging and production remain fail-closed without a configured Workspace domain.

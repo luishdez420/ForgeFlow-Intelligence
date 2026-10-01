@@ -25,6 +25,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         profile?.email,
         profile?.email_verified === true,
         process.env.GOOGLE_WORKSPACE_DOMAIN,
+        process.env.GOOGLE_ALLOWED_TEST_EMAIL,
       );
     },
   },
