@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   createCompanyAnalysisWorkflowRequestSchema,
+  invitationStatusSchema,
+  pilotRoleSchema,
   reportItemSchema,
   SCHEMA_PACKAGE_VERSION,
   tickerSchema,
@@ -10,6 +12,12 @@ import {
 describe("schema package", () => {
   it("exposes its initial contract version", () => {
     expect(SCHEMA_PACKAGE_VERSION).toBe("0.1.0");
+  });
+
+  it("defines invite-only pilot roles and invitation states", () => {
+    expect(pilotRoleSchema.parse("ADMIN")).toBe("ADMIN");
+    expect(invitationStatusSchema.parse("PENDING")).toBe("PENDING");
+    expect(() => pilotRoleSchema.parse("OWNER")).toThrow();
   });
 
   it("normalizes a valid ticker and rejects malformed symbols", () => {

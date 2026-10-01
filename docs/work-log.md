@@ -92,3 +92,11 @@ This is an append-only record of delivery evidence, decisions, failures, and def
 - Terraform's GitHub validation workflow completed successfully. The initial repository CI run failed only in the browser acceptance test because that test still expected the now-protected analyst console to be public.
 - Replaced that obsolete expectation with a browser test for the intended fail-closed behavior: an unauthenticated visitor is redirected to `/sign-in` and sees the unconfigured Google Workspace state. The Playwright web server receives a test-only `AUTH_SECRET`; the application has no production fallback secret.
 - Verification passed repository formatting, workspace type checks, API/schema tests, the browser suite, and `git diff --check`. The CI repair is ready to commit and push; the resulting GitHub run will be recorded before proceeding with #26.
+
+## 2026-10-01 — CI repair verified and Issue #26 delivered locally
+
+- Pushed `988be4e test(web): cover unauthenticated analyst redirect`. The resulting [CI run](https://github.com/luishdez420/ForgeFlow-Intelligence/actions/runs/36880526754) completed successfully; browser acceptance now tests the intended protected-route behavior.
+- Added additive migration `003_access_control.sql` for users, analyst/admin role assignments, hashed invitations, audit events, and workflow ownership. No raw invitation token is stored.
+- Added authorization helpers that allow analysts to act on their own workflows and administrators to act across the pilot. Audit metadata recursively redacts authorization values, tokens, cookies, credentials, passwords, and API keys before persistence.
+- Verification passed formatting, workspace type checks, API/schema unit tests (21 passing non-integration tests), and Compose-backed API integration tests (9 passing), including invitation acceptance, role assignment, immediate revocation, and audit metadata verification.
+- The session-to-API binding and CSRF/origin policy belong to #27. No manual AWS, Google Cloud, or browser test is needed to verify #26 locally.

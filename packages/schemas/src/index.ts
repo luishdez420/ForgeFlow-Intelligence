@@ -55,6 +55,14 @@ export const sourceTypeSchema = z.enum([
   "DATABASE",
   "API",
 ]);
+export const pilotRoleSchema = z.enum(["ANALYST", "ADMIN"]);
+export const userStatusSchema = z.enum(["ACTIVE", "REVOKED"]);
+export const invitationStatusSchema = z.enum([
+  "PENDING",
+  "ACCEPTED",
+  "REVOKED",
+  "EXPIRED",
+]);
 
 const utcDateTimeSchema = z.string().datetime({ offset: true });
 const workflowIdSchema = z.uuid();
@@ -163,3 +171,6 @@ export type ReportItemKind = z.infer<typeof reportItemKindSchema>;
 export type ReportItem = z.infer<typeof reportItemSchema>;
 export type ReportDetail = z.infer<typeof reportDetailSchema>;
 export type ApiError = z.infer<typeof apiErrorSchema>;
+export type PilotRole = z.infer<typeof pilotRoleSchema>;
+export type UserStatus = z.infer<typeof userStatusSchema>;
+export type InvitationStatus = z.infer<typeof invitationStatusSchema>;
