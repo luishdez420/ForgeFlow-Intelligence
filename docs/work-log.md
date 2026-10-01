@@ -100,3 +100,11 @@ This is an append-only record of delivery evidence, decisions, failures, and def
 - Added authorization helpers that allow analysts to act on their own workflows and administrators to act across the pilot. Audit metadata recursively redacts authorization values, tokens, cookies, credentials, passwords, and API keys before persistence.
 - Verification passed formatting, workspace type checks, API/schema unit tests (21 passing non-integration tests), and Compose-backed API integration tests (9 passing), including invitation acceptance, role assignment, immediate revocation, and audit metadata verification.
 - The session-to-API binding and CSRF/origin policy belong to #27. No manual AWS, Google Cloud, or browser test is needed to verify #26 locally.
+
+## 2026-10-01 — Issue #27 secure API and web-session boundary delivered locally
+
+- Added same-origin Next.js API routes for workflow creation, workflow retrieval, and report retrieval. They obtain the Auth.js session on the server and sign a short-lived request with the authenticated email, route, method, and exact body before forwarding to the API.
+- The API now fails closed without a valid shared secret/signature/timestamp, looks up only active allow-listed users and their persisted roles, binds new workflows to the submitting user, and returns a generic 403 for cross-user workflow/report reads. The browser no longer calls the API service directly.
+- Added origin enforcement for browser mutations, web security headers, no-store API responses, and signature-tampering coverage. The `FORGEFLOW_INTERNAL_API_SECRET` and `APP_ORIGIN` environment variables are documented but deliberately unset.
+- Verification passed formatting, all workspace type checks, API/schema/web unit tests (26 non-integration tests), the Next.js production build, browser acceptance (1 passed), and `git diff --check`. #26's pushed CI run also completed successfully.
+- A live sign-in, cross-user access, and CSRF test remains a manual pre-release gate: configure Google OAuth, an active allow-listed analyst/admin, matching web/API shared secret, and the deployed HTTPS origin before closing #27.

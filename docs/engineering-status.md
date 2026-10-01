@@ -22,6 +22,7 @@ ForgeFlow is an internal analyst-team MVP for durable, source-grounded company a
 - #24: local database lifecycle controls are implemented: configurable RDS backup/maintenance windows, snapshot tags, a constrained runtime role bootstrap, and a recovery runbook. AWS backup restoration and production-role verification remain external tests.
 - #25: Auth.js Google sign-in is configured locally with verified Workspace-domain enforcement and a server-side protected analyst route. The browser acceptance suite now verifies that an unauthenticated visitor is redirected to the fail-closed sign-in screen. OAuth credentials and a real Google callback test remain external setup work.
 - #26: persisted pilot access-control records are implemented: normalized users, analyst/admin roles, hashed invitation tokens, user revocation, workflow ownership helpers, and redacted audit events. Session-to-API enforcement is intentionally sequenced for #27; the data model and authorization rules are ready for it.
+- #27: same-origin authenticated web routes now sign API requests with a shared internal secret. The API rejects unsigned/stale/tampered requests, resolves active allow-listed roles, records workflow ownership, and enforces ownership for workflow/report reads. Google OAuth, a shared production secret, and `APP_ORIGIN` still require non-local configuration for live testing.
 
 ## Verified working locally
 
@@ -42,4 +43,4 @@ ForgeFlow is an internal analyst-team MVP for durable, source-grounded company a
 
 ## Next planned issue
 
-#27 — secure the authenticated API and web-session boundary using the #25/#26 identity and authorization foundations.
+#28 — harden live SEC EDGAR access, after the access boundary has its required production configuration.

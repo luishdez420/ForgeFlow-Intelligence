@@ -146,6 +146,8 @@ export const apiErrorCodeSchema = z.enum([
   "NOT_FOUND",
   "CONFLICT",
   "INTERNAL_ERROR",
+  "UNAUTHORIZED",
+  "FORBIDDEN",
 ]);
 export const apiErrorSchema = z.object({
   error: z.object({

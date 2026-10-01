@@ -14,10 +14,20 @@ import {
   WorkflowNotFoundError,
 } from "./workflows.js";
 import { getReport, ReportNotFoundError } from "./reports.js";
+import {
+  authenticateInternalActor,
+  InternalRequestError,
+} from "./internal-auth.js";
+import { AccessDeniedError } from "./access-control.js";
 
 const port = Number.parseInt(process.env.PORT ?? "3001", 10);
 
-const jsonHeaders = { "content-type": "application/json" };
+const jsonHeaders = {
+  "cache-control": "no-store",
+  "content-type": "application/json",
+  "cross-origin-resource-policy": "same-site",
+  "x-content-type-options": "nosniff",
+};
 
 class RequestBodyError extends Error {}
 
@@ -30,21 +40,9 @@ function sendJson(
   response.end(JSON.stringify(body));
 }
 
-async function readJson(
-  request: import("node:http").IncomingMessage,
-): Promise<unknown> {
-  const chunks: Buffer[] = [];
-  let size = 0;
-  for await (const chunk of request) {
-    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
-    size += buffer.length;
-    if (size > 1_000_000) {
-      throw new RequestBodyError("Request body exceeds 1 MB.");
-    }
-    chunks.push(buffer);
-  }
+function readJson(rawBody: string): unknown {
   try {
-    return JSON.parse(Buffer.concat(chunks).toString("utf8"));
+    return JSON.parse(rawBody);
   } catch {
     throw new RequestBodyError("Request body must be valid JSON.");
   }
@@ -58,13 +56,41 @@ const server = createServer(async (request, response) => {
 
   const pathname = new URL(request.url ?? "/", "http://localhost").pathname;
 
+  let requestBody = "";
+  if (request.method !== "GET" && request.method !== "HEAD") {
+    const chunks: Buffer[] = [];
+    for await (const chunk of request) {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    }
+    requestBody = Buffer.concat(chunks).toString("utf8");
+    if (Buffer.byteLength(requestBody) > 1_000_000) {
+      sendJson(
+        response,
+        400,
+        apiErrorSchema.parse({
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "Request body exceeds 1 MB.",
+          },
+        }),
+      );
+      return;
+    }
+  }
+
   try {
+    const actor = await authenticateInternalActor(
+      request.headers,
+      request.method ?? "GET",
+      pathname,
+      requestBody,
+    );
     if (
       request.method === "POST" &&
       pathname === "/workflows/company-analysis"
     ) {
       const parsed = createCompanyAnalysisWorkflowRequestSchema.safeParse(
-        await readJson(request),
+        readJson(requestBody),
       );
       if (!parsed.success) {
         sendJson(
@@ -83,7 +109,10 @@ const server = createServer(async (request, response) => {
         response,
         201,
         createCompanyAnalysisWorkflowResponseSchema.parse(
-          await createCompanyAnalysisWorkflow(parsed.data),
+          await createCompanyAnalysisWorkflow({
+            ...parsed.data,
+            submittedByUserId: actor.id,
+          }),
         ),
       );
       return;
@@ -94,7 +123,7 @@ const server = createServer(async (request, response) => {
       sendJson(
         response,
         200,
-        workflowDetailSchema.parse(await getWorkflow(workflowMatch[1])),
+        workflowDetailSchema.parse(await getWorkflow(workflowMatch[1], actor)),
       );
       return;
     }
@@ -103,7 +132,7 @@ const server = createServer(async (request, response) => {
       sendJson(
         response,
         200,
-        reportDetailSchema.parse(await getReport(reportMatch[1])),
+        reportDetailSchema.parse(await getReport(reportMatch[1], actor)),
       );
       return;
     }
@@ -127,6 +156,26 @@ const server = createServer(async (request, response) => {
         400,
         apiErrorSchema.parse({
           error: { code: "VALIDATION_ERROR", message: error.message },
+        }),
+      );
+      return;
+    }
+    if (error instanceof InternalRequestError) {
+      sendJson(
+        response,
+        401,
+        apiErrorSchema.parse({
+          error: { code: "UNAUTHORIZED", message: "Authentication required." },
+        }),
+      );
+      return;
+    }
+    if (error instanceof AccessDeniedError) {
+      sendJson(
+        response,
+        403,
+        apiErrorSchema.parse({
+          error: { code: "FORBIDDEN", message: "Access denied." },
         }),
       );
       return;

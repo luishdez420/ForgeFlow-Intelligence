@@ -6,6 +6,7 @@ import type {
 } from "@forgeflow/schemas";
 
 import { withTransaction, type Queryable } from "./database.js";
+import { requireWorkflowAccess, type AccessActor } from "./access-control.js";
 import {
   getWorkflowTasks,
   persistTaskGraph,
@@ -83,6 +84,7 @@ type WorkflowRow = {
   created_at: Date;
   started_at: Date | null;
   completed_at: Date | null;
+  submitted_by_user_id: string | null;
 };
 
 export class WorkflowNotFoundError extends Error {
@@ -130,7 +132,9 @@ function toWorkflowDetail(
 }
 
 export async function createCompanyAnalysisWorkflow(
-  request: CreateCompanyAnalysisWorkflowRequest,
+  request: CreateCompanyAnalysisWorkflowRequest & {
+    submittedByUserId?: string;
+  },
 ): Promise<CreateCompanyAnalysisWorkflowResponse> {
   return withTransaction(async (client) => {
     const companyResult = await client.query<{ id: string }>(
@@ -147,11 +151,16 @@ export async function createCompanyAnalysisWorkflow(
     }
 
     const workflowResult = await client.query<WorkflowRow>(
-      `INSERT INTO forgeflow.workflow_runs (company_id, ticker, workflow_type, state, idempotency_key)
-       VALUES ($1, $2, 'COMPANY_ANALYSIS', 'PENDING', $3)
+      `INSERT INTO forgeflow.workflow_runs (company_id, ticker, workflow_type, state, idempotency_key, submitted_by_user_id)
+       VALUES ($1, $2, 'COMPANY_ANALYSIS', 'PENDING', $3, $4)
        ON CONFLICT (idempotency_key) DO NOTHING
        RETURNING id, ticker, state, created_at, started_at, completed_at`,
-      [companyId, request.ticker, request.idempotencyKey ?? null],
+      [
+        companyId,
+        request.ticker,
+        request.idempotencyKey ?? null,
+        request.submittedByUserId ?? null,
+      ],
     );
 
     const created = workflowResult.rows[0];
@@ -179,10 +188,13 @@ export async function createCompanyAnalysisWorkflow(
   });
 }
 
-export async function getWorkflow(workflowId: string): Promise<WorkflowDetail> {
+export async function getWorkflow(
+  workflowId: string,
+  actor?: AccessActor,
+): Promise<WorkflowDetail> {
   return withTransaction(async (client) => {
     const result = await client.query<WorkflowRow>(
-      `SELECT id, ticker, state, created_at, started_at, completed_at
+      `SELECT id, ticker, state, created_at, started_at, completed_at, submitted_by_user_id
        FROM forgeflow.workflow_runs
        WHERE id = $1`,
       [workflowId],
@@ -190,6 +202,9 @@ export async function getWorkflow(workflowId: string): Promise<WorkflowDetail> {
     const workflow = result.rows[0];
     if (!workflow) {
       throw new WorkflowNotFoundError(workflowId);
+    }
+    if (actor) {
+      requireWorkflowAccess(actor, workflow.submitted_by_user_id);
     }
 
     return toWorkflowDetail(
@@ -205,7 +220,7 @@ export async function transitionWorkflowState(
   nextState: WorkflowState,
 ): Promise<WorkflowDetail> {
   const currentResult = await queryable.query<WorkflowRow>(
-    `SELECT id, ticker, state, created_at, started_at, completed_at
+    `SELECT id, ticker, state, created_at, started_at, completed_at, submitted_by_user_id
      FROM forgeflow.workflow_runs
      WHERE id = $1
      FOR UPDATE`,

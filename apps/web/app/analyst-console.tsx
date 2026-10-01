@@ -2,7 +2,6 @@
 
 import { FormEvent, useState } from "react";
 
-const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 type Task = {
   id: string;
   kind: string;
@@ -37,14 +36,14 @@ export function AnalystConsole({ analystEmail }: { analystEmail: string }) {
     setReport(null);
     setMessage("Creating persisted workflow…");
     try {
-      const created = await fetch(`${apiBase}/workflows/company-analysis`, {
+      const created = await fetch("/api/workflows/company-analysis", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ ticker }),
       });
       if (!created.ok) throw new Error("Use a valid US ticker and try again.");
       const { workflowId } = await created.json();
-      const detail = await fetch(`${apiBase}/workflows/${workflowId}`);
+      const detail = await fetch(`/api/workflows/${workflowId}`);
       if (!detail.ok)
         throw new Error("Workflow was created but could not be loaded.");
       const next = (await detail.json()) as Workflow;
@@ -52,7 +51,7 @@ export function AnalystConsole({ analystEmail }: { analystEmail: string }) {
       setMessage(
         `Workflow ${workflowId.slice(0, 8)} is ${next.state.toLowerCase()}.`,
       );
-      const reportResponse = await fetch(`${apiBase}/reports/${workflowId}`);
+      const reportResponse = await fetch(`/api/reports/${workflowId}`);
       if (reportResponse.ok) setReport((await reportResponse.json()) as Report);
     } catch (error) {
       setMessage(

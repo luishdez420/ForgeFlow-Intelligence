@@ -3,6 +3,7 @@ import type { ReportDetail, SourceReference } from "@forgeflow/schemas";
 import { withTransaction } from "./database.js";
 import { linkReportItemSources } from "./provenance.js";
 import { parseGroundedAiOutput } from "./report-generation.js";
+import { requireWorkflowAccess, type AccessActor } from "./access-control.js";
 
 export class ReportNotFoundError extends Error {
   constructor(workflowId: string) {
@@ -43,18 +44,23 @@ export async function persistGroundedAiReport(
   });
 }
 
-export async function getReport(workflowId: string): Promise<ReportDetail> {
+export async function getReport(
+  workflowId: string,
+  actor?: AccessActor,
+): Promise<ReportDetail> {
   return withTransaction(async (client) => {
     const report = await client.query<{
       id: string;
       ticker: string;
       published_at: Date;
+      submitted_by_user_id: string | null;
     }>(
-      "SELECT report.id, workflow.ticker, report.published_at FROM forgeflow.reports report JOIN forgeflow.workflow_runs workflow ON workflow.id = report.workflow_run_id WHERE report.workflow_run_id = $1 AND report.state = 'PUBLISHED'",
+      "SELECT report.id, workflow.ticker, report.published_at, workflow.submitted_by_user_id FROM forgeflow.reports report JOIN forgeflow.workflow_runs workflow ON workflow.id = report.workflow_run_id WHERE report.workflow_run_id = $1 AND report.state = 'PUBLISHED'",
       [workflowId],
     );
     const row = report.rows[0];
     if (!row || !row.published_at) throw new ReportNotFoundError(workflowId);
+    if (actor) requireWorkflowAccess(actor, row.submitted_by_user_id);
     const itemRows = await client.query<{
       id: string;
       item_kind: ReportDetail["items"][number]["kind"];
