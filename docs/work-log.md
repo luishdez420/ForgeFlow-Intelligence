@@ -112,3 +112,10 @@ This is an append-only record of delivery evidence, decisions, failures, and def
 ## 2026-10-01 — Local personal-account SSO test path
 
 - Added a development-only explicit Google email allow-list for a personal-account test. It is ignored outside `NODE_ENV=development`; staging and production remain fail-closed without a configured Workspace domain.
+
+## 2026-10-02 — Issue #27 closed; Issue #28 live SEC hardening delivered locally
+
+- Closed #27 with three successful CI runs and manual evidence: two allow-listed Google test users completed sign-in, the owner created a workflow, and the other user received `403 FORBIDDEN` on that workflow.
+- Added opt-in SEC EDGAR live-provider controls: required contactable User-Agent, configurable timeout, process-shared rate limiter, bounded TTL ticker cache, explicit live enablement, and safe telemetry that omits headers, response bodies, and credentials.
+- Provider 429, 5xx, reachability, and timeout conditions now yield classified retryable failures. Fixture tests cover normal SEC retrieval, cache hits, request pacing, timeout mapping, malformed input, and the disabled-by-default live-provider guard.
+- Verification passed worker tests (11 passed), repository formatting, workspace type checks, API/schema/web tests (26 non-integration tests), and `git diff --check`. A live SEC staging smoke test is deferred until staging exists and an operator configures `SEC_EDGAR_LIVE_ENABLED=true` plus a contactable `SEC_EDGAR_USER_AGENT`; #28 remains open.

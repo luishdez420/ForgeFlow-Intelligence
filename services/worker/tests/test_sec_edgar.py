@@ -5,7 +5,12 @@ from pathlib import Path
 
 import pytest
 
-from forgeflow_worker.sec_edgar import SecEdgarError, SecEdgarProvider
+from forgeflow_worker.sec_edgar import (
+    SecEdgarError,
+    SecEdgarProvider,
+    SecEdgarTimeoutError,
+    SecRequestRateLimiter,
+)
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -52,3 +57,54 @@ def test_rejects_malformed_filing_arrays() -> None:
     provider = SecEdgarProvider("ForgeFlow contact@example.com", http_client=MalformedClient())
     with pytest.raises(SecEdgarError, match="inconsistent lengths"):
         provider.retrieve_filings(provider.resolve_ticker("MSFT"))
+
+
+def test_uses_bounded_cache_and_safe_retrieval_telemetry() -> None:
+    class Sink:
+        events: list[object] = []
+
+        def record(self, event: object) -> None:
+            self.events.append(event)
+
+    client, sink = FixtureHttpClient(), Sink()
+    provider = SecEdgarProvider(
+        "ForgeFlow contact@example.com",
+        http_client=client,
+        telemetry_sink=sink,
+        ticker_cache_max_entries=1,
+    )
+    provider.resolve_ticker("MSFT")
+    provider.resolve_ticker("MSFT")
+
+    assert len(client.urls) == 1
+    assert sink.events[-1].cache_hit is True
+    assert sink.events[-1].endpoint == "company_tickers"
+    assert "contact@example.com" not in repr(sink.events[-1])
+
+
+def test_rate_limiter_paces_requests_and_timeout_is_retryable() -> None:
+    now, waits = [0.0], []
+    limiter = SecRequestRateLimiter(
+        2,
+        clock=lambda: now[0],
+        sleeper=lambda seconds: waits.append(seconds),
+    )
+    limiter.acquire()
+    limiter.acquire()
+    assert waits == [0.5]
+
+    class TimeoutClient:
+        def get_json(self, *_: object) -> object:
+            raise TimeoutError()
+
+    with pytest.raises(SecEdgarTimeoutError) as error:
+        SecEdgarProvider(
+            "ForgeFlow contact@example.com", http_client=TimeoutClient()
+        ).resolve_ticker("MSFT")
+    assert error.value.classification == "TRANSIENT"
+
+
+def test_live_provider_requires_explicit_opt_in(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("SEC_EDGAR_LIVE_ENABLED", raising=False)
+    with pytest.raises(ValueError, match="disabled"):
+        SecEdgarProvider.from_environment()
