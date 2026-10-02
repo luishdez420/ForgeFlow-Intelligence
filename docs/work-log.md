@@ -107,7 +107,7 @@ This is an append-only record of delivery evidence, decisions, failures, and def
 - The API now fails closed without a valid shared secret/signature/timestamp, looks up only active allow-listed users and their persisted roles, binds new workflows to the submitting user, and returns a generic 403 for cross-user workflow/report reads. The browser no longer calls the API service directly.
 - Added origin enforcement for browser mutations, web security headers, no-store API responses, and signature-tampering coverage. The `FORGEFLOW_INTERNAL_API_SECRET` and `APP_ORIGIN` environment variables are documented but deliberately unset.
 - Verification passed formatting, all workspace type checks, API/schema/web unit tests (26 non-integration tests), the Next.js production build, browser acceptance (1 passed), and `git diff --check`. #26's pushed CI run also completed successfully.
-- A live sign-in, cross-user access, and CSRF test remains a manual pre-release gate: configure Google OAuth, an active allow-listed analyst/admin, matching web/API shared secret, and the deployed HTTPS origin before closing #27.
+- Local manual evidence: both personal Google test accounts completed OAuth sign-in after explicit development allow-listing. The first analyst created workflow `32c6af3e-9291-4b18-8fd8-8e3443e6d554`; the second analyst received `403 {"error":{"code":"FORBIDDEN","message":"Access denied."}}` when requesting it. This confirms session binding and cross-user ownership enforcement. A deployed HTTPS origin/CSRF test remains a pre-release gate.
 
 ## 2026-10-01 — Local personal-account SSO test path
 
