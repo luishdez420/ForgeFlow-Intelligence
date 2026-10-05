@@ -11,6 +11,7 @@ from forgeflow_worker.sec_edgar import (
     SecEdgarTimeoutError,
     SecRequestRateLimiter,
 )
+from forgeflow_worker.sec_smoke import smoke_summary
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -108,3 +109,16 @@ def test_live_provider_requires_explicit_opt_in(monkeypatch: pytest.MonkeyPatch)
     monkeypatch.delenv("SEC_EDGAR_LIVE_ENABLED", raising=False)
     with pytest.raises(ValueError, match="disabled"):
         SecEdgarProvider.from_environment()
+
+
+def test_smoke_summary_uses_one_company_and_filing_lookup() -> None:
+    provider = SecEdgarProvider(
+        "ForgeFlow contact@example.com", http_client=FixtureHttpClient()
+    )
+    assert smoke_summary(provider, "MSFT") == {
+        "ticker": "MSFT",
+        "cik": "0000789019",
+        "companyName": "MICROSOFT CORP",
+        "supportedFilingCount": 3,
+        "forms": ["10-K", "10-Q", "8-K"],
+    }

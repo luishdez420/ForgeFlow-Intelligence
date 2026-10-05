@@ -119,3 +119,8 @@ This is an append-only record of delivery evidence, decisions, failures, and def
 - Added opt-in SEC EDGAR live-provider controls: required contactable User-Agent, configurable timeout, process-shared rate limiter, bounded TTL ticker cache, explicit live enablement, and safe telemetry that omits headers, response bodies, and credentials.
 - Provider 429, 5xx, reachability, and timeout conditions now yield classified retryable failures. Fixture tests cover normal SEC retrieval, cache hits, request pacing, timeout mapping, malformed input, and the disabled-by-default live-provider guard.
 - Verification passed worker tests (11 passed), repository formatting, workspace type checks, API/schema/web tests (26 non-integration tests), and `git diff --check`. A live SEC staging smoke test is deferred until staging exists and an operator configures `SEC_EDGAR_LIVE_ENABLED=true` plus a contactable `SEC_EDGAR_USER_AGENT`; #28 remains open.
+
+## 2026-10-05 — Local SEC smoke path prepared
+
+- Added `python -m forgeflow_worker.sec_smoke --ticker MSFT`, an explicit opt-in local diagnostic that performs only the SEC ticker-index and company-submissions reads, then prints a sanitized company/filing-count summary. It neither writes to ForgeFlow nor emits request headers, credentials, or SEC response bodies.
+- The command requires both `SEC_EDGAR_LIVE_ENABLED=true` and a contactable `SEC_EDGAR_USER_AGENT`; its fixture-backed contract test verifies the expected two-step provider flow. A real operator run is pending. This is supplementary local evidence, not a substitute for the required staging smoke test before #28 closes.
