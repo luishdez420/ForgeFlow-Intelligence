@@ -14,6 +14,7 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 SEC_DATA_URL = "https://data.sec.gov"
+SEC_TICKERS_URL = "https://www.sec.gov/files/company_tickers.json"
 SEC_ARCHIVES_URL = "https://www.sec.gov/Archives/edgar/data"
 
 class SecEdgarError(RuntimeError): classification = "PERMANENT"
@@ -88,13 +89,13 @@ class SecEdgarProvider:
         symbol, now = ticker.strip().upper(), self._clock(); cached = self._cache.get(ticker.strip().upper())
         if cached and cached[1] > now: self._cache.move_to_end(symbol); self._record("company_tickers", "SUCCEEDED", now, True); return cached[0]
         if cached: del self._cache[symbol]
-        payload = self._get("company_tickers", f"{SEC_DATA_URL}/files/company_tickers.json")
+        payload = self._get("company_tickers", SEC_TICKERS_URL)
         if not isinstance(payload, dict): raise SecEdgarError("SEC ticker response was not an object.")
         for row in payload.values():
             if not isinstance(row, dict) or str(row.get("ticker", "")).upper() != symbol: continue
             cik, name = str(row.get("cik_str", "")).zfill(10), str(row.get("title", "")).strip()
             if not cik.isdigit() or not name: raise SecEdgarError("SEC ticker response omitted a valid CIK or company name.")
-            company = SecCompany(symbol, cik, name, None, f"{SEC_DATA_URL}/files/company_tickers.json", datetime.now(UTC))
+            company = SecCompany(symbol, cik, name, None, SEC_TICKERS_URL, datetime.now(UTC))
             self._cache[symbol] = (company, self._clock() + self._ttl); self._cache.move_to_end(symbol)
             while len(self._cache) > self._max: self._cache.popitem(last=False)
             return company

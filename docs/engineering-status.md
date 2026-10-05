@@ -37,6 +37,7 @@ ForgeFlow is an internal analyst-team MVP for durable, source-grounded company a
 
 - No approved market-data vendor, credentials, or license exists; market-derived information remains explicitly unavailable.
 - No live SEC EDGAR or OpenAI credentials are configured. The local SEC smoke command remains disabled unless an operator explicitly supplies a contactable User-Agent; it persists no response content.
+- The first local live-SEC smoke attempt exposed an incorrect ticker-directory host and returned HTTP 404 before any company data was processed. The endpoint repair is under verification; the operator should retry only after the fixed commit is pushed.
 - Issue #22 cannot close until an authorized operator completes the documented AWS bootstrap and staging apply/smoke test.
 - #23 cannot close until an operator chooses a paid AWS environment, configures the documented GitHub environment variables/OIDC role/ECS services, and completes a staging deployment, failed-migration, and rollback drill. GitHub Actions work is intentionally paused until the account's minutes reset.
 - #24 cannot close until an authorized operator applies the RDS controls and performs the documented staged point-in-time restore drill against AWS.

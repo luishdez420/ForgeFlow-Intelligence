@@ -124,3 +124,8 @@ This is an append-only record of delivery evidence, decisions, failures, and def
 
 - Added `python -m forgeflow_worker.sec_smoke --ticker MSFT`, an explicit opt-in local diagnostic that performs only the SEC ticker-index and company-submissions reads, then prints a sanitized company/filing-count summary. It neither writes to ForgeFlow nor emits request headers, credentials, or SEC response bodies.
 - The command requires both `SEC_EDGAR_LIVE_ENABLED=true` and a contactable `SEC_EDGAR_USER_AGENT`; its fixture-backed contract test verifies the expected two-step provider flow. A real operator run is pending. This is supplementary local evidence, not a substitute for the required staging smoke test before #28 closes.
+
+## 2026-10-05 — Local SEC smoke endpoint defect found
+
+- The first opt-in live smoke attempt received HTTP 404 during ticker resolution. The adapter incorrectly requested the SEC ticker directory from `data.sec.gov`; that public directory belongs at `www.sec.gov/files/company_tickers.json`. The repair makes that host explicit and adds an exact-URL regression assertion for the ticker-index and company-submissions requests.
+- No ForgeFlow data was written and no SEC response content was persisted. A successful operator retry remains required after the repair is verified and pushed.

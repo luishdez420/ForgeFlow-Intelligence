@@ -35,9 +35,14 @@ def test_resolves_ticker_and_normalizes_supported_filing_references() -> None:
 
     assert company.cik == "0000789019"
     assert company.name == "MICROSOFT CORP"
+    assert company.source_url == "https://www.sec.gov/files/company_tickers.json"
     assert [filing.form for filing in filings] == ["10-K", "10-Q", "8-K"]
     assert filings[0].document_url.endswith("/789019/000095017025089830/msft-20250630.htm")
     assert len(client.urls) == 2
+    assert client.urls == [
+        "https://www.sec.gov/files/company_tickers.json",
+        "https://data.sec.gov/submissions/CIK0000789019.json",
+    ]
 
 
 def test_rejects_missing_ticker_and_noncompliant_user_agent() -> None:
