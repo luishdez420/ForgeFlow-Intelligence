@@ -14,6 +14,7 @@ from psycopg.types.json import Jsonb
 from .runtime import ClaimedTask
 from .sec_edgar import SecCompanyFacts, SecDocument
 from .sec_facts import ExtractedSecFact
+from .sec_taxonomy import CanonicalFact
 
 DEFAULT_DATABASE_URL = "postgresql://forgeflow:forgeflow@localhost:15432/forgeflow"
 
@@ -247,6 +248,23 @@ class PostgresWorkerRepository:
                     {"primary_document": document.filing.primary_document},
                 )
             return {"documents": len(documents) + 1, "facts": inserted_facts}
+
+    def persist_canonical_sec_facts(self, company_id: str, source_id: str, document_id: str, facts: list[CanonicalFact]) -> int:
+        """Persist every mapping result with source/document identity and version."""
+        inserted = 0
+        with self._connection() as connection, connection.cursor() as cursor:
+            for fact in facts:
+                raw_value = {"sec_concept": fact.sec_concept, "unit": fact.unit, "mapping_version": fact.mapping_version, "raw": fact.raw_value}
+                cursor.execute(
+                    """INSERT INTO forgeflow.facts (company_id, source_id, document_id, field_name, raw_value, normalized_value, normalization_status, observed_at)
+                    SELECT %s, %s, %s, %s, %s::jsonb, %s::jsonb, %s, %s::date WHERE NOT EXISTS (
+                      SELECT 1 FROM forgeflow.facts WHERE company_id = %s AND source_id = %s AND document_id = %s AND field_name = %s AND raw_value = %s::jsonb
+                    )""",
+                    (company_id, source_id, document_id, fact.name, Jsonb(raw_value), Jsonb({"unit": fact.unit, "value": fact.raw_value.get("val"), "mapping_version": fact.mapping_version}), fact.status, fact.period_end,
+                     company_id, source_id, document_id, fact.name, Jsonb(raw_value)),
+                )
+                inserted += cursor.rowcount
+        return inserted
 
     @staticmethod
     def _record_source(cursor, company_id: str, source_type: str, origin_url: str, content: bytes, retrieved_at, metadata: dict[str, str]) -> str:

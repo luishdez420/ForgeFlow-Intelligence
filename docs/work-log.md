@@ -146,3 +146,9 @@ This is an append-only record of delivery evidence, decisions, failures, and def
 - Added conservative raw XBRL extraction for the initial US-GAAP observation set. It retains competing and amended observations, carries period/unit/form/accession/raw value context, and emits explicit unavailable records for absent concepts. Canonical concept selection remains deliberately deferred to #30.
 - Added idempotent PostgreSQL persistence for SEC sources, documents, and facts. The Compose-backed check proves a repeated delivery produces four immutable document records and eight raw/unavailable fact records only once. Recorded fixtures and tests cover normal, amended/duplicate, and malformed payload paths; the retrieval test exercises a missing-document response.
 - Verification passed 18 worker tests including PostgreSQL integration, repository formatting, all workspace type checks, API/schema/web tests (26 non-integration tests), and `git diff --check`. Production workflow-handler wiring and staging evidence remain before #29 can close.
+
+## 2026-10-05 — Issue #30 SEC taxonomy mapping delivered
+
+- Added a reviewed, versioned deterministic taxonomy for revenue, operating income, net income, assets, operating cash flow, and share count. Mapping records retain the SEC concept, original raw value, unit, fiscal period, source/document identity, and mapping version.
+- Mapping is append-only and idempotent: competing concepts and conflicting values remain separate queryable records, while missing concepts become explicit unavailable entries. PostgreSQL integration proves repeated mapping delivery creates no duplicates.
+- Verification passed 21 worker tests including local PostgreSQL integration, repository formatting, and `git diff --check`.

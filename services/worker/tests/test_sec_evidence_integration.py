@@ -11,6 +11,7 @@ import pytest
 from forgeflow_worker.repository import DEFAULT_DATABASE_URL, PostgresWorkerRepository
 from forgeflow_worker.sec_edgar import SecEdgarProvider
 from forgeflow_worker.sec_facts import extract_initial_facts
+from forgeflow_worker.sec_taxonomy import map_sec_facts
 
 FIXTURES = Path(__file__).parent / "fixtures"
 run_integration = environ.get("RUN_INTEGRATION") == "1"
@@ -46,6 +47,11 @@ def test_persists_sec_evidence_idempotently() -> None:
     try:
         first = repository.persist_sec_evidence(company_id, documents, company_facts, facts)
         second = repository.persist_sec_evidence(company_id, documents, company_facts, facts)
+        with psycopg.connect(database_url) as connection, connection.cursor() as cursor:
+            cursor.execute("SELECT source_id, document_id FROM forgeflow.facts WHERE company_id = %s LIMIT 1", (company_id,))
+            source_id, document_id = cursor.fetchone()
+        assert repository.persist_canonical_sec_facts(company_id, str(source_id), str(document_id), map_sec_facts(facts)) == 7
+        assert repository.persist_canonical_sec_facts(company_id, str(source_id), str(document_id), map_sec_facts(facts)) == 0
         assert first == {"documents": 4, "facts": 8}
         assert second == {"documents": 4, "facts": 0}
         with psycopg.connect(database_url) as connection, connection.cursor() as cursor:
@@ -54,7 +60,7 @@ def test_persists_sec_evidence_idempotently() -> None:
             cursor.execute("SELECT count(*) FROM forgeflow.documents WHERE source_id IN (SELECT id FROM forgeflow.sources WHERE company_id = %s)", (company_id,))
             assert cursor.fetchone()[0] == 4
             cursor.execute("SELECT count(*) FROM forgeflow.facts WHERE company_id = %s", (company_id,))
-            assert cursor.fetchone()[0] == 8
+            assert cursor.fetchone()[0] == 15
     finally:
         with psycopg.connect(database_url) as connection, connection.cursor() as cursor:
             cursor.execute("DELETE FROM forgeflow.facts WHERE company_id = %s", (company_id,))
