@@ -134,3 +134,8 @@ This is an append-only record of delivery evidence, decisions, failures, and def
 
 - The repaired live smoke reached the SEC ticker directory but failed decoding a gzip-compressed response. The adapter had advertised `Accept-Encoding: gzip, deflate` without implementing decompression. It now advertises only the required contactable User-Agent, and a regression assertion prevents reintroducing the unsupported compression capability.
 - No ForgeFlow data was written and no SEC response content was persisted. A successful operator retry remains required after the repair is verified and pushed.
+
+## 2026-10-05 — Local SEC smoke check passed
+
+- An operator ran the explicit live SEC smoke command for `MSFT` after the endpoint and compression repairs. It completed successfully and returned CIK `0000789019`, company name `MICROSOFT CORP`, 80 supported filings, and sample forms `8-K`, `10-K`, and `8-K`.
+- The test made only the intended ticker-index and company-submissions reads and printed a sanitized summary. No response content was stored in ForgeFlow. This satisfies the local live-provider evidence; #28 remains open for its required staging smoke test.
