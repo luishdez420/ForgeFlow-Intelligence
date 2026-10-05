@@ -152,3 +152,8 @@ This is an append-only record of delivery evidence, decisions, failures, and def
 - Added a reviewed, versioned deterministic taxonomy for revenue, operating income, net income, assets, operating cash flow, and share count. Mapping records retain the SEC concept, original raw value, unit, fiscal period, source/document identity, and mapping version.
 - Mapping is append-only and idempotent: competing concepts and conflicting values remain separate queryable records, while missing concepts become explicit unavailable entries. PostgreSQL integration proves repeated mapping delivery creates no duplicates.
 - Verification passed 21 worker tests including local PostgreSQL integration, repository formatting, and `git diff --check`.
+
+## 2026-10-05 — Issue #31 task-success persistence delivered
+
+- Added the worker success path: only a task holding its current lease token can transition to succeeded; its matching attempt is finalized and waiting dependents are released when every prerequisite has succeeded. Stale and duplicate completion deliveries are harmless no-ops.
+- Verification passed 21 worker tests including local PostgreSQL integration, repository formatting, and `git diff --check`.
