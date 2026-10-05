@@ -24,6 +24,7 @@ ForgeFlow is an internal analyst-team MVP for durable, source-grounded company a
 - #26: persisted pilot access-control records are implemented: normalized users, analyst/admin roles, hashed invitation tokens, user revocation, workflow ownership helpers, and redacted audit events. Session-to-API enforcement is intentionally sequenced for #27; the data model and authorization rules are ready for it.
 - #27: same-origin authenticated web routes now sign API requests with a shared internal secret. The API rejects unsigned/stale/tampered requests, resolves active allow-listed roles, records workflow ownership, and enforces ownership for workflow/report reads. Local Google sign-in, allow-list persistence, owned workflow creation, and cross-user denial have been manually verified. A single verified personal Google email may be enabled only under local development with `GOOGLE_ALLOWED_TEST_EMAIL`; staging/production still require a Workspace domain.
 - #28: SEC EDGAR now has an opt-in live adapter with contactable User-Agent validation, shared request pacing, bounded ticker cache, timeouts, retryable provider failure classes, safe telemetry, and a two-request local smoke command. Fixture checks and the controlled local MSFT smoke check passed; a compliant live staging smoke test remains required before closure.
+- #29: selected SEC primary-document retrieval, company-facts/XBRL retrieval, conservative raw-fact extraction, and idempotent PostgreSQL source/document/fact persistence are implemented and locally verified. Production task-handler wiring and live/staging fixture evidence remain for #32 and the pilot environment.
 
 ## Verified working locally
 
@@ -45,4 +46,4 @@ ForgeFlow is an internal analyst-team MVP for durable, source-grounded company a
 
 ## Next planned issue
 
-#29 — retrieve and persist selected SEC filing documents and XBRL facts once #28's live adapter smoke evidence is available.
+#30 — map preserved SEC concepts to the canonical financial fact taxonomy after #29’s raw evidence model.

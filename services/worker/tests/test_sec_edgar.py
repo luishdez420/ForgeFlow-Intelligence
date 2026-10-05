@@ -8,6 +8,7 @@ import pytest
 from forgeflow_worker.sec_edgar import (
     SecEdgarError,
     SecEdgarProvider,
+    SecFiling,
     SecEdgarTimeoutError,
     SecRequestRateLimiter,
 )
@@ -24,8 +25,17 @@ class FixtureHttpClient:
     def get_json(self, url: str, headers: dict[str, str], __: float) -> object:
         self.urls.append(url)
         self.headers.append(headers)
-        filename = "company_tickers.json" if url.endswith("company_tickers.json") else "submissions_msft.json"
+        filename = (
+            "company_tickers.json" if url.endswith("company_tickers.json")
+            else "companyfacts_msft.json" if "companyfacts" in url
+            else "submissions_msft.json"
+        )
         return json.loads((FIXTURES / filename).read_text())
+
+    def get_bytes(self, url: str, _: dict[str, str], __: float) -> bytes:
+        if "missing" in url:
+            raise SecEdgarError("SEC EDGAR returned HTTP 404.")
+        return f"<html><body>{url}</body></html>".encode()
 
 
 def test_resolves_ticker_and_normalizes_supported_filing_references() -> None:
@@ -133,3 +143,43 @@ def test_smoke_summary_uses_one_company_and_filing_lookup() -> None:
         "supportedFilingCount": 3,
         "forms": ["10-K", "10-Q", "8-K"],
     }
+
+
+def test_retrieves_one_selected_document_per_supported_form_and_company_facts() -> None:
+    provider = SecEdgarProvider(
+        "ForgeFlow contact@example.com", http_client=FixtureHttpClient()
+    )
+    company = provider.resolve_ticker("MSFT")
+    filings = provider.retrieve_filings(company)
+
+    documents = provider.retrieve_selected_documents(filings + [filings[0]])
+    company_facts = provider.retrieve_company_facts(company)
+
+    assert [document.filing.form for document in documents] == ["10-K", "10-Q", "8-K"]
+    assert all(document.content.startswith(b"<html>") for document in documents)
+    assert company_facts.source_url.endswith("/CIK0000789019.json")
+    assert company_facts.content["facts"]["us-gaap"]["Revenues"]["units"]["USD"][0]["val"] == 245000
+
+
+def test_rejects_malformed_company_facts_and_preserves_missing_document_error() -> None:
+    class MalformedFactsClient(FixtureHttpClient):
+        def get_json(self, url: str, headers: dict[str, str], timeout: float) -> object:
+            if "companyfacts" in url:
+                return []
+            return super().get_json(url, headers, timeout)
+
+    provider = SecEdgarProvider(
+        "ForgeFlow contact@example.com", http_client=MalformedFactsClient()
+    )
+    company = provider.resolve_ticker("MSFT")
+    with pytest.raises(SecEdgarError, match="malformed"):
+        provider.retrieve_company_facts(company)
+    with pytest.raises(SecEdgarError, match="404"):
+        provider.retrieve_selected_documents(
+            [
+                SecFiling(
+                    "missing", "10-K", "2025-01-01", "missing.htm",
+                    "https://www.sec.gov/Archives/edgar/data/missing", "https://data.sec.gov/submissions/test"
+                )
+            ]
+        )

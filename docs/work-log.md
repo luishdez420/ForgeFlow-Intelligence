@@ -139,3 +139,10 @@ This is an append-only record of delivery evidence, decisions, failures, and def
 
 - An operator ran the explicit live SEC smoke command for `MSFT` after the endpoint and compression repairs. It completed successfully and returned CIK `0000789019`, company name `MICROSOFT CORP`, 80 supported filings, and sample forms `8-K`, `10-K`, and `8-K`.
 - The test made only the intended ticker-index and company-submissions reads and printed a sanitized summary. No response content was stored in ForgeFlow. This satisfies the local live-provider evidence; #28 remains open for its required staging smoke test.
+
+## 2026-10-05 — Issue #29 SEC evidence ingestion delivered locally
+
+- Added rate-limited retrieval for one selected primary document per supported SEC form (`10-K`, `10-Q`, and `8-K`) plus the SEC company-facts/XBRL payload. Each retrieved object retains its SEC URL, retrieval time, filing context, and immutable content hash when persisted.
+- Added conservative raw XBRL extraction for the initial US-GAAP observation set. It retains competing and amended observations, carries period/unit/form/accession/raw value context, and emits explicit unavailable records for absent concepts. Canonical concept selection remains deliberately deferred to #30.
+- Added idempotent PostgreSQL persistence for SEC sources, documents, and facts. The Compose-backed check proves a repeated delivery produces four immutable document records and eight raw/unavailable fact records only once. Recorded fixtures and tests cover normal, amended/duplicate, and malformed payload paths; the retrieval test exercises a missing-document response.
+- Verification passed 18 worker tests including PostgreSQL integration, repository formatting, all workspace type checks, API/schema/web tests (26 non-integration tests), and `git diff --check`. Production workflow-handler wiring and staging evidence remain before #29 can close.

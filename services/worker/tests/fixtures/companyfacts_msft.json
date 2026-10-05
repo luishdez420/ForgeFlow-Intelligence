@@ -1,0 +1,23 @@
+{
+  "cik": 789019,
+  "entityName": "MICROSOFT CORP",
+  "facts": {
+    "us-gaap": {
+      "Revenues": {
+        "units": {
+          "USD": [
+            {
+              "end": "2025-06-30",
+              "fy": 2025,
+              "fp": "FY",
+              "form": "10-K",
+              "filed": "2025-07-30",
+              "accn": "0000950170-25-089830",
+              "val": 245000
+            }
+          ]
+        }
+      }
+    }
+  }
+}

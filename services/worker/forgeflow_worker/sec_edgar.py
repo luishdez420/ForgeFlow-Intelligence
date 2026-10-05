@@ -16,6 +16,7 @@ from urllib.request import Request, urlopen
 SEC_DATA_URL = "https://data.sec.gov"
 SEC_TICKERS_URL = "https://www.sec.gov/files/company_tickers.json"
 SEC_ARCHIVES_URL = "https://www.sec.gov/Archives/edgar/data"
+SEC_COMPANY_FACTS_URL = f"{SEC_DATA_URL}/api/xbrl/companyfacts"
 
 class SecEdgarError(RuntimeError): classification = "PERMANENT"
 class SecEdgarTransientError(SecEdgarError): classification = "TRANSIENT"
@@ -24,6 +25,7 @@ class SecEdgarRateLimitError(SecEdgarTransientError): classification = "RATE_LIM
 
 class HttpClient(Protocol):
     def get_json(self, url: str, headers: dict[str, str], timeout_seconds: float) -> object: ...
+    def get_bytes(self, url: str, headers: dict[str, str], timeout_seconds: float) -> bytes: ...
 class TelemetrySink(Protocol):
     def record(self, event: "SecRetrievalTelemetry") -> None: ...
 
@@ -36,6 +38,12 @@ class SecCompany:
 @dataclass(frozen=True)
 class SecFiling:
     accession_number: str; form: str; filing_date: str; primary_document: str; document_url: str; source_url: str
+@dataclass(frozen=True)
+class SecDocument:
+    filing: SecFiling; content: bytes; retrieved_at: datetime
+@dataclass(frozen=True)
+class SecCompanyFacts:
+    company: SecCompany; content: object; source_url: str; retrieved_at: datetime
 
 class SecRequestRateLimiter:
     """Pass one instance to every live provider in a worker process."""
@@ -48,16 +56,20 @@ class SecRequestRateLimiter:
         if wait: self._sleeper(wait)
 
 class UrlLibHttpClient:
-    def get_json(self, url: str, headers: dict[str, str], timeout_seconds: float) -> object:
+    def _get(self, url: str, headers: dict[str, str], timeout_seconds: float) -> bytes:
         try:
             with urlopen(Request(url, headers=headers), timeout=timeout_seconds) as response:  # noqa: S310
-                return json.loads(response.read())
+                return response.read()
         except HTTPError as error:
             if error.code == 429: raise SecEdgarRateLimitError("SEC EDGAR rate limited the request.") from error
             if 500 <= error.code < 600: raise SecEdgarTransientError("SEC EDGAR was temporarily unavailable.") from error
             raise SecEdgarError(f"SEC EDGAR returned HTTP {error.code}.") from error
         except (SocketTimeout, TimeoutError) as error: raise SecEdgarTimeoutError("SEC EDGAR request timed out.") from error
         except URLError as error: raise SecEdgarTransientError("SEC EDGAR could not be reached.") from error
+    def get_json(self, url: str, headers: dict[str, str], timeout_seconds: float) -> object:
+        return json.loads(self._get(url, headers, timeout_seconds))
+    def get_bytes(self, url: str, headers: dict[str, str], timeout_seconds: float) -> bytes:
+        return self._get(url, headers, timeout_seconds)
 
 class SecEdgarProvider:
     def __init__(self, user_agent: str, *, http_client: HttpClient | None = None, rate_limiter: SecRequestRateLimiter | None = None, telemetry_sink: TelemetrySink | None = None, timeout_seconds: float = 10, ticker_cache_ttl_seconds: float = 3600, ticker_cache_max_entries: int = 1000, clock: Callable[[], float] = monotonic) -> None:
@@ -85,6 +97,17 @@ class SecEdgarProvider:
             raise error from cause
         except SecEdgarError as error: self._record(endpoint, "FAILED", start, error=error); raise
         self._record(endpoint, "SUCCEEDED", start); return payload
+    def _get_bytes(self, endpoint: str, url: str) -> bytes:
+        start = self._clock(); self._limiter.acquire()
+        try: payload = self._http.get_bytes(url, self._headers, self._timeout)
+        except (SocketTimeout, TimeoutError) as cause:
+            error = SecEdgarTimeoutError("SEC EDGAR request timed out.")
+            self._record(endpoint, "FAILED", start, error=error); raise error from cause
+        except URLError as cause:
+            error = SecEdgarTransientError("SEC EDGAR could not be reached.")
+            self._record(endpoint, "FAILED", start, error=error); raise error from cause
+        except SecEdgarError as error: self._record(endpoint, "FAILED", start, error=error); raise
+        self._record(endpoint, "SUCCEEDED", start); return payload
     def resolve_ticker(self, ticker: str) -> SecCompany:
         symbol, now = ticker.strip().upper(), self._clock(); cached = self._cache.get(ticker.strip().upper())
         if cached and cached[1] > now: self._cache.move_to_end(symbol); self._record("company_tickers", "SUCCEEDED", now, True); return cached[0]
@@ -109,3 +132,16 @@ class SecEdgarProvider:
         if not all(isinstance(values, list) for values in (forms, accessions, dates, documents)): raise SecEdgarError("SEC filing arrays were malformed.")
         if len({len(forms), len(accessions), len(dates), len(documents)}) != 1: raise SecEdgarError("SEC filing arrays had inconsistent lengths.")
         return [SecFiling(accession, form, str(filing_date), document, f"{SEC_ARCHIVES_URL}/{int(company.cik)}/{accession.replace('-', '')}/{document}", source_url) for form, accession, filing_date, document in zip(forms, accessions, dates, documents, strict=True) if form in {"10-K", "10-Q", "8-K"} and isinstance(accession, str) and isinstance(document, str)]
+    def retrieve_selected_documents(self, filings: list[SecFiling]) -> list[SecDocument]:
+        selected: list[SecFiling] = []
+        seen_forms: set[str] = set()
+        for filing in filings:
+            if filing.form not in seen_forms:
+                selected.append(filing); seen_forms.add(filing.form)
+        return [SecDocument(filing, self._get_bytes("primary_document", filing.document_url), datetime.now(UTC)) for filing in selected]
+    def retrieve_company_facts(self, company: SecCompany) -> SecCompanyFacts:
+        source_url = f"{SEC_COMPANY_FACTS_URL}/CIK{company.cik}.json"
+        content = self._get("company_facts", source_url)
+        if not isinstance(content, dict) or not isinstance(content.get("facts"), dict):
+            raise SecEdgarError("SEC company facts response was malformed.")
+        return SecCompanyFacts(company, content, source_url, datetime.now(UTC))

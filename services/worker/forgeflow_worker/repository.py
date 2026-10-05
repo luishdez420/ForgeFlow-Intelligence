@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
+from hashlib import sha256
+import json
 from math import ceil
 from os import environ
 from uuid import uuid4
@@ -10,6 +12,8 @@ from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
 from .runtime import ClaimedTask
+from .sec_edgar import SecCompanyFacts, SecDocument
+from .sec_facts import ExtractedSecFact
 
 DEFAULT_DATABASE_URL = "postgresql://forgeflow:forgeflow@localhost:15432/forgeflow"
 
@@ -192,3 +196,88 @@ class PostgresWorkerRepository:
                     """,
                     (task["workflow_run_id"],),
                 )
+
+    def persist_sec_evidence(
+        self,
+        company_id: str,
+        documents: list[SecDocument],
+        company_facts: SecCompanyFacts,
+        extracted_facts: list[ExtractedSecFact],
+    ) -> dict[str, int]:
+        """Idempotently persist immutable SEC evidence and raw XBRL observations."""
+        with self._connection() as connection, connection.cursor() as cursor:
+            company_facts_source = self._record_source(
+                cursor, company_id, "API", company_facts.source_url,
+                json.dumps(company_facts.content, sort_keys=True, separators=(",", ":")).encode(),
+                company_facts.retrieved_at, {"cik": company_facts.company.cik, "dataset": "companyfacts"},
+            )
+            company_facts_document = self._record_document(
+                cursor, company_facts_source, "SEC_COMPANY_FACTS", company_facts.source_url,
+                None, company_facts.source_url,
+                json.dumps(company_facts.content, sort_keys=True, separators=(",", ":")).encode(),
+                {"cik": company_facts.company.cik},
+            )
+            inserted_facts = 0
+            for fact in extracted_facts:
+                cursor.execute(
+                    """
+                    INSERT INTO forgeflow.facts (company_id, source_id, document_id, field_name, raw_value, normalization_status, observed_at)
+                    SELECT %s, %s, %s, %s, %s::jsonb, %s, %s::date
+                    WHERE NOT EXISTS (
+                      SELECT 1 FROM forgeflow.facts
+                      WHERE company_id = %s AND source_id = %s AND document_id = %s
+                        AND field_name = %s AND raw_value = %s::jsonb
+                        AND normalization_status = %s AND observed_at IS NOT DISTINCT FROM %s::date
+                    )
+                    """,
+                    (company_id, company_facts_source, company_facts_document, fact.field_name,
+                     Jsonb(fact.raw_value), fact.normalization_status, fact.observed_at,
+                     company_id, company_facts_source, company_facts_document, fact.field_name,
+                     Jsonb(fact.raw_value), fact.normalization_status, fact.observed_at),
+                )
+                inserted_facts += cursor.rowcount
+            for document in documents:
+                source_id = self._record_source(
+                    cursor, company_id, "SEC_FILING", document.filing.document_url, document.content,
+                    document.retrieved_at, {"cik": company_facts.company.cik, "form": document.filing.form},
+                )
+                self._record_document(
+                    cursor, source_id, document.filing.form, document.filing.accession_number,
+                    document.filing.filing_date, document.filing.document_url, document.content,
+                    {"primary_document": document.filing.primary_document},
+                )
+            return {"documents": len(documents) + 1, "facts": inserted_facts}
+
+    @staticmethod
+    def _record_source(cursor, company_id: str, source_type: str, origin_url: str, content: bytes, retrieved_at, metadata: dict[str, str]) -> str:
+        content_hash = sha256(content).hexdigest()
+        cursor.execute(
+            """
+            INSERT INTO forgeflow.sources (company_id, source_type, provider, origin_url, retrieved_at, content_hash, metadata)
+            VALUES (%s, %s, 'SEC EDGAR', %s, %s, %s, %s::jsonb)
+            ON CONFLICT (provider, origin_url, content_hash) DO NOTHING RETURNING id
+            """, (company_id, source_type, origin_url, retrieved_at, content_hash, Jsonb(metadata)),
+        )
+        row = cursor.fetchone()
+        if row is None:
+            cursor.execute("SELECT id FROM forgeflow.sources WHERE provider = 'SEC EDGAR' AND origin_url = %s AND content_hash = %s", (origin_url, content_hash))
+            row = cursor.fetchone()
+        if row is None: raise RuntimeError("SEC source persistence did not return an identifier")
+        return str(row["id"])
+
+    @staticmethod
+    def _record_document(cursor, source_id: str, document_type: str, external_identifier: str | None, filing_date: str | None, content_location: str, content: bytes, metadata: dict[str, str]) -> str:
+        content_hash = sha256(content).hexdigest()
+        cursor.execute(
+            """
+            INSERT INTO forgeflow.documents (source_id, document_type, external_identifier, filing_date, content_location, content_hash, metadata)
+            VALUES (%s, %s, %s, %s::date, %s, %s, %s::jsonb)
+            ON CONFLICT (source_id, content_hash) DO NOTHING RETURNING id
+            """, (source_id, document_type, external_identifier, filing_date, content_location, content_hash, Jsonb(metadata)),
+        )
+        row = cursor.fetchone()
+        if row is None:
+            cursor.execute("SELECT id FROM forgeflow.documents WHERE source_id = %s AND content_hash = %s", (source_id, content_hash))
+            row = cursor.fetchone()
+        if row is None: raise RuntimeError("SEC document persistence did not return an identifier")
+        return str(row["id"])
