@@ -129,3 +129,8 @@ This is an append-only record of delivery evidence, decisions, failures, and def
 
 - The first opt-in live smoke attempt received HTTP 404 during ticker resolution. The adapter incorrectly requested the SEC ticker directory from `data.sec.gov`; that public directory belongs at `www.sec.gov/files/company_tickers.json`. The repair makes that host explicit and adds an exact-URL regression assertion for the ticker-index and company-submissions requests.
 - No ForgeFlow data was written and no SEC response content was persisted. A successful operator retry remains required after the repair is verified and pushed.
+
+## 2026-10-05 — Local SEC smoke compression defect found
+
+- The repaired live smoke reached the SEC ticker directory but failed decoding a gzip-compressed response. The adapter had advertised `Accept-Encoding: gzip, deflate` without implementing decompression. It now advertises only the required contactable User-Agent, and a regression assertion prevents reintroducing the unsupported compression capability.
+- No ForgeFlow data was written and no SEC response content was persisted. A successful operator retry remains required after the repair is verified and pushed.

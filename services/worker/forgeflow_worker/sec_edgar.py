@@ -63,7 +63,7 @@ class SecEdgarProvider:
     def __init__(self, user_agent: str, *, http_client: HttpClient | None = None, rate_limiter: SecRequestRateLimiter | None = None, telemetry_sink: TelemetrySink | None = None, timeout_seconds: float = 10, ticker_cache_ttl_seconds: float = 3600, ticker_cache_max_entries: int = 1000, clock: Callable[[], float] = monotonic) -> None:
         if "@" not in user_agent or len(user_agent.strip()) < 8: raise ValueError("SEC EDGAR requires a contactable User-Agent containing an email address.")
         if min(timeout_seconds, ticker_cache_ttl_seconds, ticker_cache_max_entries) <= 0: raise ValueError("SEC EDGAR timeout and cache bounds must be positive.")
-        self._headers, self._http, self._limiter = {"User-Agent": user_agent.strip(), "Accept-Encoding": "gzip, deflate"}, http_client or UrlLibHttpClient(), rate_limiter or SecRequestRateLimiter()
+        self._headers, self._http, self._limiter = {"User-Agent": user_agent.strip()}, http_client or UrlLibHttpClient(), rate_limiter or SecRequestRateLimiter()
         self._telemetry, self._timeout, self._ttl, self._max, self._clock = telemetry_sink, timeout_seconds, ticker_cache_ttl_seconds, ticker_cache_max_entries, clock
         self._cache: OrderedDict[str, tuple[SecCompany, float]] = OrderedDict()
     @classmethod

@@ -19,9 +19,11 @@ FIXTURES = Path(__file__).parent / "fixtures"
 class FixtureHttpClient:
     def __init__(self) -> None:
         self.urls: list[str] = []
+        self.headers: list[dict[str, str]] = []
 
-    def get_json(self, url: str, _: dict[str, str], __: float) -> object:
+    def get_json(self, url: str, headers: dict[str, str], __: float) -> object:
         self.urls.append(url)
+        self.headers.append(headers)
         filename = "company_tickers.json" if url.endswith("company_tickers.json") else "submissions_msft.json"
         return json.loads((FIXTURES / filename).read_text())
 
@@ -42,6 +44,10 @@ def test_resolves_ticker_and_normalizes_supported_filing_references() -> None:
     assert client.urls == [
         "https://www.sec.gov/files/company_tickers.json",
         "https://data.sec.gov/submissions/CIK0000789019.json",
+    ]
+    assert client.headers == [
+        {"User-Agent": "ForgeFlow Intelligence contact@example.com"},
+        {"User-Agent": "ForgeFlow Intelligence contact@example.com"},
     ]
 
 
