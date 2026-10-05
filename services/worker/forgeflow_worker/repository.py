@@ -198,6 +198,14 @@ class PostgresWorkerRepository:
                     (task["workflow_run_id"],),
                 )
 
+    def record_task_success(self, task_id: str, lease_token: str) -> None:
+        with self._connection() as connection, connection.cursor() as cursor:
+            cursor.execute("UPDATE forgeflow.workflow_tasks SET state = 'SUCCEEDED', completed_at = now(), lease_token = NULL, lease_expires_at = NULL, leased_by_worker_id = NULL WHERE id = %s AND lease_token = %s::uuid AND state IN ('LEASED', 'RUNNING') RETURNING workflow_run_id", (task_id, lease_token))
+            row = cursor.fetchone()
+            if row is None: return
+            cursor.execute("UPDATE forgeflow.task_attempts SET state = 'SUCCEEDED', completed_at = now() WHERE task_id = %s AND lease_token = %s::uuid AND state IN ('LEASED', 'RUNNING')", (task_id, lease_token))
+            cursor.execute("UPDATE forgeflow.workflow_tasks dependent SET state = 'PENDING' FROM forgeflow.workflow_task_dependencies edge WHERE edge.task_id = dependent.id AND dependent.workflow_run_id = %s AND dependent.state = 'WAITING' AND NOT EXISTS (SELECT 1 FROM forgeflow.workflow_task_dependencies required JOIN forgeflow.workflow_tasks prerequisite ON prerequisite.id = required.depends_on_task_id WHERE required.task_id = dependent.id AND prerequisite.state <> 'SUCCEEDED')", (row['workflow_run_id'],))
+
     def persist_sec_evidence(
         self,
         company_id: str,

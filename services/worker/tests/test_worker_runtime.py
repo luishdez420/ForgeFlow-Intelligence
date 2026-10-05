@@ -8,6 +8,7 @@ class FakeRepository:
         self.heartbeats: list[str] = []
         self.statuses: list[tuple[str, str]] = []
         self.failures: list[tuple[str, str, str, str, str]] = []
+        self.successes: list[tuple[str, str]] = []
         self.claims = 0
 
     def register(self, _: str, capabilities: list[str]) -> str:
@@ -28,6 +29,9 @@ class FakeRepository:
     def record_task_failure(self, task_id: str, lease_token: str, classification: str, code: str, message: str) -> None:
         self.failures.append((task_id, lease_token, classification, code, message))
 
+    def record_task_success(self, task_id: str, lease_token: str) -> None:
+        self.successes.append((task_id, lease_token))
+
 def test_runtime_registers_capabilities_and_executes_supported_task() -> None:
     handled: list[str] = []
     task = ClaimedTask("task-1", "workflow-1", "FETCH_SEC_FILINGS", "attempt-1", 1, "token", "2030-01-01T00:00:00+00:00")
@@ -38,6 +42,7 @@ def test_runtime_registers_capabilities_and_executes_supported_task() -> None:
     assert runtime.worker_id == "worker-1"
     assert repository.registered_capabilities == ["FETCH_SEC_FILINGS"]
     assert handled == ["task-1"]
+    assert repository.successes == [("task-1", "token")]
 
 
 def test_graceful_shutdown_stops_new_task_claims() -> None:

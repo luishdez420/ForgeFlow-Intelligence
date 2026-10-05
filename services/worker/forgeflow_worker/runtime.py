@@ -36,6 +36,8 @@ class WorkerRepository(Protocol):
         self, task_id: str, lease_token: str, classification: str, code: str, message: str
     ) -> None: ...
 
+    def record_task_success(self, task_id: str, lease_token: str) -> None: ...
+
 
 TaskHandler = Callable[[ClaimedTask], None]
 logger = logging.getLogger(__name__)
@@ -111,6 +113,7 @@ class WorkerRuntime:
 
         try:
             self._handlers[task.kind](task)
+            self._repository.record_task_success(task.task_id, task.lease_token)
             return True
         except TaskExecutionError as error:
             logger.exception("Task %s failed with %s", task.task_id, error.code)
