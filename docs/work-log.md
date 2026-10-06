@@ -157,3 +157,9 @@ This is an append-only record of delivery evidence, decisions, failures, and def
 
 - Added the worker success path: only a task holding its current lease token can transition to succeeded; its matching attempt is finalized and waiting dependents are released when every prerequisite has succeeded. Stale and duplicate completion deliveries are harmless no-ops.
 - Verification passed 21 worker tests including local PostgreSQL integration, repository formatting, and `git diff --check`.
+
+## 2026-10-06 — Issue #32 company-analysis handlers delivered locally
+
+- Activated the full company-analysis handler graph in the real worker entry point. SEC profile/filing tasks retrieve and persist filing documents, company facts, and raw XBRL evidence via the durable repository; market history writes an explicit unavailable record because no approved vendor exists.
+- Successful completion now makes the workflow terminal only after every task has succeeded. Fixture-backed handler coverage verifies SEC persistence dispatch and market unavailability; the live provider remains explicit opt-in.
+- Verification passed 22 worker tests (one external integration test intentionally skipped), repository formatting, all workspace type checks, API/schema/web tests (26 non-integration tests), and `git diff --check`. An opt-in live staging run remains required before #32 can close.

@@ -58,6 +58,26 @@ class PostgresWorkerRepository:
                 (worker_id,),
             )
 
+    def workflow_company(self, workflow_id: str) -> tuple[str, str]:
+        with self._connection() as connection, connection.cursor() as cursor:
+            cursor.execute("SELECT company_id, ticker FROM forgeflow.workflow_runs WHERE id = %s", (workflow_id,))
+            row = cursor.fetchone()
+        if row is None or row["company_id"] is None: raise RuntimeError("Workflow has no company.")
+        return str(row["company_id"]), str(row["ticker"])
+
+    def record_market_data_unavailable(self, company_id: str) -> None:
+        with self._connection() as connection, connection.cursor() as cursor:
+            cursor.execute("""INSERT INTO forgeflow.sources (company_id, source_type, provider, origin_url, retrieved_at, content_hash, metadata)
+            VALUES (%s, 'API', 'MARKET_DATA_UNAVAILABLE', 'https://forgeflow.invalid/market-data-unavailable', now(), 'market-data-unavailable-v1', '{"reason":"NO_APPROVED_VENDOR"}'::jsonb)
+            ON CONFLICT (provider, origin_url, content_hash) DO NOTHING RETURNING id""", (company_id,))
+            row = cursor.fetchone()
+            if row is None:
+                cursor.execute("SELECT id FROM forgeflow.sources WHERE provider = 'MARKET_DATA_UNAVAILABLE' AND origin_url = 'https://forgeflow.invalid/market-data-unavailable' AND content_hash = 'market-data-unavailable-v1'")
+                row = cursor.fetchone()
+            cursor.execute("""INSERT INTO forgeflow.facts (company_id, source_id, field_name, raw_value, normalization_status)
+            SELECT %s, %s, 'market_history', '{"reason":"NO_APPROVED_VENDOR"}'::jsonb, 'UNAVAILABLE'
+            WHERE NOT EXISTS (SELECT 1 FROM forgeflow.facts WHERE company_id = %s AND source_id = %s AND field_name = 'market_history')""", (company_id, row["id"], company_id, row["id"]))
+
     def set_status(self, worker_id: str, status: str) -> None:
         with self._connection() as connection, connection.cursor() as cursor:
             cursor.execute(
@@ -205,6 +225,7 @@ class PostgresWorkerRepository:
             if row is None: return
             cursor.execute("UPDATE forgeflow.task_attempts SET state = 'SUCCEEDED', completed_at = now() WHERE task_id = %s AND lease_token = %s::uuid AND state IN ('LEASED', 'RUNNING')", (task_id, lease_token))
             cursor.execute("UPDATE forgeflow.workflow_tasks dependent SET state = 'PENDING' FROM forgeflow.workflow_task_dependencies edge WHERE edge.task_id = dependent.id AND dependent.workflow_run_id = %s AND dependent.state = 'WAITING' AND NOT EXISTS (SELECT 1 FROM forgeflow.workflow_task_dependencies required JOIN forgeflow.workflow_tasks prerequisite ON prerequisite.id = required.depends_on_task_id WHERE required.task_id = dependent.id AND prerequisite.state <> 'SUCCEEDED')", (row['workflow_run_id'],))
+            cursor.execute("UPDATE forgeflow.workflow_runs SET state = 'SUCCEEDED', completed_at = now() WHERE id = %s AND state NOT IN ('SUCCEEDED', 'FAILED', 'CANCELLED') AND NOT EXISTS (SELECT 1 FROM forgeflow.workflow_tasks WHERE workflow_run_id = %s AND state <> 'SUCCEEDED')", (row["workflow_run_id"], row["workflow_run_id"]))
 
     def persist_sec_evidence(
         self,

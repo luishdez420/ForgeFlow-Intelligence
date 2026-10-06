@@ -27,6 +27,7 @@ ForgeFlow is an internal analyst-team MVP for durable, source-grounded company a
 - #29: selected SEC primary-document retrieval, company-facts/XBRL retrieval, conservative raw-fact extraction, and idempotent PostgreSQL source/document/fact persistence are implemented and locally verified. Production task-handler wiring and live/staging fixture evidence remain for #32 and the pilot environment.
 - #30: versioned canonical SEC taxonomy mappings now preserve every raw source observation, unit, period, source/document identity, and mapping version. Competing values stay queryable; no mapping silently selects a winner.
 - #31: worker-side task success is lease-token guarded, finalizes the matching attempt, and releases ready waiting dependents transactionally. A stale or duplicate completion becomes a harmless no-op.
+- #32: the worker now registers the complete company-analysis handler graph, persists SEC evidence through durable repository operations, records market history as explicitly unavailable until a vendor is approved, and marks a fully successful run terminal. Fixture verification is complete; live staging evidence remains required.
 
 ## Verified working locally
 
@@ -48,4 +49,4 @@ ForgeFlow is an internal analyst-team MVP for durable, source-grounded company a
 
 ## Next planned issue
 
-#32 — wire durable production company-analysis task handlers.
+#33 — persist deterministic financial metrics in the authoritative store.
