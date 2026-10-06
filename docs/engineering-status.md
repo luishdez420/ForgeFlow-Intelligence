@@ -28,6 +28,7 @@ ForgeFlow is an internal analyst-team MVP for durable, source-grounded company a
 - #30: versioned canonical SEC taxonomy mappings now preserve every raw source observation, unit, period, source/document identity, and mapping version. Competing values stay queryable; no mapping silently selects a winner.
 - #31: worker-side task success is lease-token guarded, finalizes the matching attempt, and releases ready waiting dependents transactionally. A stale or duplicate completion becomes a harmless no-op.
 - #32: the worker now registers the complete company-analysis handler graph, persists SEC evidence through durable repository operations, records market history as explicitly unavailable until a vendor is approved, and marks a fully successful run terminal. Fixture verification is complete; live staging evidence remains required.
+- #33: deterministic Python metric results persist authoritatively with formula version, input snapshot, status, period, and calculation timestamp; duplicate delivery is idempotent and invalid inputs are explicit records.
 
 ## Verified working locally
 
@@ -49,4 +50,4 @@ ForgeFlow is an internal analyst-team MVP for durable, source-grounded company a
 
 ## Next planned issue
 
-#33 — persist deterministic financial metrics in the authoritative store.
+#34 — implement workflow-level source validation and data-quality gates.

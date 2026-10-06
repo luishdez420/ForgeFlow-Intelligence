@@ -163,3 +163,9 @@ This is an append-only record of delivery evidence, decisions, failures, and def
 - Activated the full company-analysis handler graph in the real worker entry point. SEC profile/filing tasks retrieve and persist filing documents, company facts, and raw XBRL evidence via the durable repository; market history writes an explicit unavailable record because no approved vendor exists.
 - Successful completion now makes the workflow terminal only after every task has succeeded. Fixture-backed handler coverage verifies SEC persistence dispatch and market unavailability; the live provider remains explicit opt-in.
 - Verification passed 22 worker tests (one external integration test intentionally skipped), repository formatting, all workspace type checks, API/schema/web tests (26 non-integration tests), and `git diff --check`. An opt-in live staging run remains required before #32 can close.
+
+## 2026-10-06 — Issue #33 metric persistence delivered
+
+- Added idempotent authoritative persistence for Python financial-engine results, retaining metric value, unit, period, formula version, exact input snapshot, calculation status, and timestamp. Report readers can use these stored results without recalculating them.
+- Local PostgreSQL integration verifies calculated and invalid-input records, retry idempotency, and source-ID input snapshots. Formula-version changes produce distinct history because version is part of the persistence identity.
+- Verification passed 24 worker tests including local PostgreSQL integration, repository formatting, and `git diff --check`.

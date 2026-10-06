@@ -78,6 +78,21 @@ class PostgresWorkerRepository:
             SELECT %s, %s, 'market_history', '{"reason":"NO_APPROVED_VENDOR"}'::jsonb, 'UNAVAILABLE'
             WHERE NOT EXISTS (SELECT 1 FROM forgeflow.facts WHERE company_id = %s AND source_id = %s AND field_name = 'market_history')""", (company_id, row["id"], company_id, row["id"]))
 
+    def persist_financial_metric(self, company_id: str, metric, period_end: str | None = None) -> str:
+        """Persist a deterministic metric once per formula/input snapshot."""
+        snapshot = Jsonb(metric.input_snapshot)
+        with self._connection() as connection, connection.cursor() as cursor:
+            cursor.execute("""INSERT INTO forgeflow.financial_metrics (company_id, metric_name, period_end, value, unit, formula_version, input_snapshot, calculation_status, calculated_at)
+            SELECT %s, %s, %s::date, %s, %s, %s, %s::jsonb, %s, %s
+            WHERE NOT EXISTS (SELECT 1 FROM forgeflow.financial_metrics WHERE company_id = %s AND metric_name = %s AND period_end IS NOT DISTINCT FROM %s::date AND formula_version = %s AND input_snapshot = %s::jsonb)
+            RETURNING id""", (company_id, metric.metric_name, period_end, metric.value, metric.unit, metric.formula_version, snapshot, metric.status, metric.calculated_at, company_id, metric.metric_name, period_end, metric.formula_version, snapshot))
+            row = cursor.fetchone()
+            if row is None:
+                cursor.execute("SELECT id FROM forgeflow.financial_metrics WHERE company_id = %s AND metric_name = %s AND period_end IS NOT DISTINCT FROM %s::date AND formula_version = %s AND input_snapshot = %s::jsonb", (company_id, metric.metric_name, period_end, metric.formula_version, snapshot))
+                row = cursor.fetchone()
+        if row is None: raise RuntimeError("Financial metric persistence did not return an identifier")
+        return str(row["id"])
+
     def set_status(self, worker_id: str, status: str) -> None:
         with self._connection() as connection, connection.cursor() as cursor:
             cursor.execute(
