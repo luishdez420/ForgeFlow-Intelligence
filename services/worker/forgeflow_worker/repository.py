@@ -15,6 +15,7 @@ from .runtime import ClaimedTask
 from .sec_edgar import SecCompanyFacts, SecDocument
 from .sec_facts import ExtractedSecFact
 from .sec_taxonomy import CanonicalFact
+from .validation import ValidationFinding, validate_workflow_inputs
 
 DEFAULT_DATABASE_URL = "postgresql://forgeflow:forgeflow@localhost:15432/forgeflow"
 
@@ -92,6 +93,32 @@ class PostgresWorkerRepository:
                 row = cursor.fetchone()
         if row is None: raise RuntimeError("Financial metric persistence did not return an identifier")
         return str(row["id"])
+
+    def validate_workflow_sources(self, workflow_id: str) -> list[ValidationFinding]:
+        """Persist deterministic validation findings without mutating source evidence."""
+        with self._connection() as connection, connection.cursor() as cursor:
+            cursor.execute("SELECT company_id FROM forgeflow.workflow_runs WHERE id = %s", (workflow_id,))
+            workflow = cursor.fetchone()
+            if workflow is None or workflow["company_id"] is None:
+                raise RuntimeError("Workflow has no company.")
+            company_id = str(workflow["company_id"])
+            cursor.execute("SELECT id, retrieved_at FROM forgeflow.sources WHERE company_id = %s", (company_id,))
+            sources = cursor.fetchall()
+            cursor.execute("SELECT id, source_id, field_name, raw_value, normalization_status, observed_at FROM forgeflow.facts WHERE company_id = %s", (company_id,))
+            facts = cursor.fetchall()
+            findings = validate_workflow_inputs(sources, facts)
+            for finding in findings:
+                value = finding.persistence_value()
+                cursor.execute(
+                    """INSERT INTO forgeflow.workflow_validation_findings
+                       (workflow_run_id, company_id, finding_key, code, severity, data_status, subject_type, subject_id, message, details)
+                       VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb)
+                       ON CONFLICT (workflow_run_id, finding_key) DO UPDATE
+                       SET severity = EXCLUDED.severity, data_status = EXCLUDED.data_status,
+                           message = EXCLUDED.message, details = EXCLUDED.details""",
+                    (workflow_id, company_id, value["finding_key"], value["code"], value["severity"], value["data_status"], value["subject_type"], value["subject_id"], value["message"], Jsonb(value["details"])),
+                )
+        return findings
 
     def set_status(self, worker_id: str, status: str) -> None:
         with self._connection() as connection, connection.cursor() as cursor:

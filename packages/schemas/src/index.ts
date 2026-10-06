@@ -101,6 +101,17 @@ export const createCompanyAnalysisWorkflowResponseSchema = z.object({
   createdAt: utcDateTimeSchema,
 });
 
+export const validationFindingSchema = z.object({
+  code: z.string().min(1).max(100),
+  severity: z.enum(["ERROR", "WARNING", "INFO"]),
+  dataStatus: z.enum(["VALID", "AMBIGUOUS", "UNAVAILABLE", "INVALID"]),
+  subjectType: z.string().min(1).max(100),
+  subjectId: z.string().min(1).nullable(),
+  message: z.string().min(1),
+  details: z.record(z.string(), z.unknown()),
+  createdAt: utcDateTimeSchema,
+});
+
 export const workflowDetailSchema = z.object({
   id: workflowIdSchema,
   ticker: tickerSchema,
@@ -109,6 +120,7 @@ export const workflowDetailSchema = z.object({
   startedAt: utcDateTimeSchema.nullable(),
   completedAt: utcDateTimeSchema.nullable(),
   tasks: z.array(workflowTaskSummarySchema),
+  validationFindings: z.array(validationFindingSchema),
 });
 
 export const reportItemSchema = z
@@ -139,6 +151,7 @@ export const reportDetailSchema = z.object({
   ticker: tickerSchema,
   publishedAt: utcDateTimeSchema,
   items: z.array(reportItemSchema),
+  validationFindings: z.array(validationFindingSchema),
 });
 
 export const apiErrorCodeSchema = z.enum([

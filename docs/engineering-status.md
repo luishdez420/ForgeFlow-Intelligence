@@ -1,6 +1,6 @@
 # Engineering status
 
-Last updated: 2026-10-05
+Last updated: 2026-10-06
 
 ## Product state
 
@@ -29,6 +29,7 @@ ForgeFlow is an internal analyst-team MVP for durable, source-grounded company a
 - #31: worker-side task success is lease-token guarded, finalizes the matching attempt, and releases ready waiting dependents transactionally. A stale or duplicate completion becomes a harmless no-op.
 - #32: the worker now registers the complete company-analysis handler graph, persists SEC evidence through durable repository operations, records market history as explicitly unavailable until a vendor is approved, and marks a fully successful run terminal. Fixture verification is complete; live staging evidence remains required.
 - #33: deterministic Python metric results persist authoritatively with formula version, input snapshot, status, period, and calculation timestamp; duplicate delivery is idempotent and invalid inputs are explicit records.
+- #34: deterministic source-data validation now detects stale evidence, missing provenance or periods, unsupported canonical units, conflicting values, and missing financial inputs. Findings persist per workflow, are exposed in workflow/report responses, and ERROR findings block report publication while warning-level ambiguity/unavailability remains visible.
 
 ## Verified working locally
 
@@ -50,4 +51,4 @@ ForgeFlow is an internal analyst-team MVP for durable, source-grounded company a
 
 ## Next planned issue
 
-#34 — implement workflow-level source validation and data-quality gates.
+#35 — integrate OpenAI Responses API with constrained structured output.

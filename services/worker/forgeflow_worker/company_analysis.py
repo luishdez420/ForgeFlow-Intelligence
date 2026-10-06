@@ -14,6 +14,7 @@ class AnalysisRepository:
     def persist_sec_evidence(self, company_id: str, documents, company_facts, extracted_facts) -> dict[str, int]: ...
     def persist_canonical_sec_facts(self, company_id: str, source_id: str, document_id: str, facts) -> int: ...
     def record_market_data_unavailable(self, company_id: str) -> None: ...
+    def validate_workflow_sources(self, workflow_id: str): ...
 
 
 @dataclass
@@ -30,7 +31,7 @@ class CompanyAnalysisHandlers:
             "NORMALIZE_FINANCIAL_DATA": self.noop,
             "CALCULATE_FINANCIAL_METRICS": self.noop,
             "CALCULATE_MARKET_METRICS": self.noop,
-            "VALIDATE_SOURCES": self.noop,
+            "VALIDATE_SOURCES": self.validate_sources,
             "GENERATE_ANALYSIS": self.noop,
             "ASSEMBLE_REPORT": self.noop,
             "PUBLISH_REPORT": self.noop,
@@ -54,5 +55,8 @@ class CompanyAnalysisHandlers:
     def fetch_market_history(self, task: ClaimedTask) -> None:
         company_id, _ = self.repository.workflow_company(task.workflow_id)
         self.repository.record_market_data_unavailable(company_id)
+
+    def validate_sources(self, task: ClaimedTask) -> None:
+        self.repository.validate_workflow_sources(task.workflow_id)
 
     def noop(self, _: ClaimedTask) -> None: pass

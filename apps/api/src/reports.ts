@@ -11,6 +11,14 @@ export class ReportNotFoundError extends Error {
   }
 }
 
+export class ValidationGateError extends Error {
+  constructor() {
+    super(
+      "Report publication is blocked by invalid source validation findings.",
+    );
+  }
+}
+
 export async function persistGroundedAiReport(
   workflowId: string,
   rawOutput: string,
@@ -18,6 +26,15 @@ export async function persistGroundedAiReport(
 ): Promise<string> {
   const items = parseGroundedAiOutput(rawOutput, allowedSourceIds);
   return withTransaction(async (client) => {
+    const blockingFindings = await client.query<{ count: string }>(
+      `SELECT count(*)
+       FROM forgeflow.workflow_validation_findings
+       WHERE workflow_run_id = $1 AND severity = 'ERROR'`,
+      [workflowId],
+    );
+    if (Number(blockingFindings.rows[0]?.count ?? 0) > 0) {
+      throw new ValidationGateError();
+    }
     const workflow = await client.query<{ company_id: string }>(
       "SELECT company_id FROM forgeflow.workflow_runs WHERE id = $1 FOR UPDATE",
       [workflowId],
@@ -83,6 +100,22 @@ export async function getReport(
       "SELECT link.report_item_id, source.id, source.source_type, source.provider, source.origin_url, source.retrieved_at FROM forgeflow.report_item_sources link JOIN forgeflow.sources source ON source.id = link.source_id WHERE link.report_item_id IN (SELECT id FROM forgeflow.report_items WHERE report_id = $1)",
       [row.id],
     );
+    const findings = await client.query<{
+      code: string;
+      severity: "ERROR" | "WARNING" | "INFO";
+      data_status: "VALID" | "AMBIGUOUS" | "UNAVAILABLE" | "INVALID";
+      subject_type: string;
+      subject_id: string | null;
+      message: string;
+      details: Record<string, unknown>;
+      created_at: Date;
+    }>(
+      `SELECT code, severity, data_status, subject_type, subject_id, message, details, created_at
+       FROM forgeflow.workflow_validation_findings
+       WHERE workflow_run_id = $1
+       ORDER BY severity, created_at, code`,
+      [workflowId],
+    );
     return {
       id: row.id,
       workflowId,
@@ -106,6 +139,16 @@ export async function getReport(
         ...(item.financial_metric_id
           ? { calculationId: item.financial_metric_id }
           : {}),
+      })),
+      validationFindings: findings.rows.map((finding) => ({
+        code: finding.code,
+        severity: finding.severity,
+        dataStatus: finding.data_status,
+        subjectType: finding.subject_type,
+        subjectId: finding.subject_id,
+        message: finding.message,
+        details: finding.details,
+        createdAt: finding.created_at.toISOString(),
       })),
     };
   });

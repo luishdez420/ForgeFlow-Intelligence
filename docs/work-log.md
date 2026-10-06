@@ -169,3 +169,9 @@ This is an append-only record of delivery evidence, decisions, failures, and def
 - Added idempotent authoritative persistence for Python financial-engine results, retaining metric value, unit, period, formula version, exact input snapshot, calculation status, and timestamp. Report readers can use these stored results without recalculating them.
 - Local PostgreSQL integration verifies calculated and invalid-input records, retry idempotency, and source-ID input snapshots. Formula-version changes produce distinct history because version is part of the persistence identity.
 - Verification passed 24 worker tests including local PostgreSQL integration, repository formatting, and `git diff --check`.
+
+## 2026-10-06 — Issue #34 workflow data-quality gates delivered
+
+- Added additive migration `004_validation_findings.sql` and a deterministic validator for source freshness, provenance, filing periods, canonical units, conflicting observations, and required financial inputs. Findings are persisted idempotently and do not mutate raw evidence.
+- Activated the `VALIDATE_SOURCES` worker task. Validation findings appear in the typed workflow and report read models. ERROR findings block report publication; warning-level ambiguity and unavailable inputs support a clearly labeled partial report.
+- Verification passed the migration runner, 28 Python worker tests including local PostgreSQL persistence coverage, all workspace type checks, 26 non-integration workspace tests, formatting, and `git diff --check`.

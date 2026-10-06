@@ -119,6 +119,7 @@ function toWorkflowResponse(
 function toWorkflowDetail(
   row: WorkflowRow,
   tasks: WorkflowDetail["tasks"],
+  validationFindings: WorkflowDetail["validationFindings"] = [],
 ): WorkflowDetail {
   return {
     id: row.id,
@@ -128,6 +129,7 @@ function toWorkflowDetail(
     startedAt: row.started_at?.toISOString() ?? null,
     completedAt: row.completed_at?.toISOString() ?? null,
     tasks,
+    validationFindings,
   };
 }
 
@@ -207,9 +209,35 @@ export async function getWorkflow(
       requireWorkflowAccess(actor, workflow.submitted_by_user_id);
     }
 
+    const findings = await client.query<{
+      code: string;
+      severity: "ERROR" | "WARNING" | "INFO";
+      data_status: "VALID" | "AMBIGUOUS" | "UNAVAILABLE" | "INVALID";
+      subject_type: string;
+      subject_id: string | null;
+      message: string;
+      details: Record<string, unknown>;
+      created_at: Date;
+    }>(
+      `SELECT code, severity, data_status, subject_type, subject_id, message, details, created_at
+       FROM forgeflow.workflow_validation_findings
+       WHERE workflow_run_id = $1
+       ORDER BY severity, created_at, code`,
+      [workflowId],
+    );
     return toWorkflowDetail(
       workflow,
       await getWorkflowTasks(client, workflowId),
+      findings.rows.map((finding) => ({
+        code: finding.code,
+        severity: finding.severity,
+        dataStatus: finding.data_status,
+        subjectType: finding.subject_type,
+        subjectId: finding.subject_id,
+        message: finding.message,
+        details: finding.details,
+        createdAt: finding.created_at.toISOString(),
+      })),
     );
   });
 }

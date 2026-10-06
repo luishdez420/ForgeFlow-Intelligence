@@ -4,7 +4,11 @@ import { afterAll, describe, expect, it } from "vitest";
 
 import { pool } from "../src/database.js";
 import { recordSource } from "../src/provenance.js";
-import { getReport, persistGroundedAiReport } from "../src/reports.js";
+import {
+  getReport,
+  persistGroundedAiReport,
+  ValidationGateError,
+} from "../src/reports.js";
 import { SourceGroundingError } from "../src/report-generation.js";
 
 const runIntegration = process.env.INTEGRATION_TEST === "1";
@@ -92,5 +96,30 @@ describe.skipIf(!runIntegration)("source-grounded reports", () => {
         )
       ).rows[0]?.count,
     ).toBe("1");
+  });
+
+  it("blocks publication when provenance validation has an error", async () => {
+    await pool.query(
+      `INSERT INTO forgeflow.workflow_validation_findings
+       (workflow_run_id, company_id, finding_key, code, severity, data_status, subject_type, message)
+       VALUES ($1, $2, 'report-gate-test', 'MISSING_PROVENANCE', 'ERROR', 'INVALID', 'FACT', 'A fact is missing provenance.')`,
+      [workflowId, companyId],
+    );
+    await expect(
+      persistGroundedAiReport(
+        workflowId,
+        JSON.stringify({
+          items: [
+            {
+              section: "Outlook",
+              title: "Blocked",
+              content: "This must not publish.",
+              sourceIds: [sourceId],
+            },
+          ],
+        }),
+        [sourceId],
+      ),
+    ).rejects.toBeInstanceOf(ValidationGateError);
   });
 });
