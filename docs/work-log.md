@@ -175,3 +175,9 @@ This is an append-only record of delivery evidence, decisions, failures, and def
 - Added additive migration `004_validation_findings.sql` and a deterministic validator for source freshness, provenance, filing periods, canonical units, conflicting observations, and required financial inputs. Findings are persisted idempotently and do not mutate raw evidence.
 - Activated the `VALIDATE_SOURCES` worker task. Validation findings appear in the typed workflow and report read models. ERROR findings block report publication; warning-level ambiguity and unavailable inputs support a clearly labeled partial report.
 - Verification passed the migration runner, 28 Python worker tests including local PostgreSQL persistence coverage, all workspace type checks, 26 non-integration workspace tests, formatting, and `git diff --check`.
+
+## 2026-10-06 — Issue #35 constrained OpenAI Responses adapter delivered locally
+
+- Added a disabled-by-default Responses API adapter using `text.format` JSON Schema with strict output, `store: false`, a bounded eight-source/3,000-character allow-listed context, and a source-grounded prompt that cannot write facts or metrics.
+- Model refusals, malformed output, unsupported citations, provider failures, and timeout behavior produce explicit explainable errors. One transient provider failure is retried; successful and failed agent runs preserve safe structured output/error codes, token telemetry, optional configured cost estimates, and a prompt fingerprint without storing credentials or raw prompt content.
+- Verification passed formatting, workspace type checks, and 31 non-integration workspace tests, including mocked Responses API contract coverage for source bounds, strict schema, refusal, malformed/unsupported citations, and retry behavior. No OpenAI key or live provider request was used. A Secrets Manager-configured, opt-in staging smoke test remains required before #35 can close.

@@ -30,6 +30,7 @@ ForgeFlow is an internal analyst-team MVP for durable, source-grounded company a
 - #32: the worker now registers the complete company-analysis handler graph, persists SEC evidence through durable repository operations, records market history as explicitly unavailable until a vendor is approved, and marks a fully successful run terminal. Fixture verification is complete; live staging evidence remains required.
 - #33: deterministic Python metric results persist authoritatively with formula version, input snapshot, status, period, and calculation timestamp; duplicate delivery is idempotent and invalid inputs are explicit records.
 - #34: deterministic source-data validation now detects stale evidence, missing provenance or periods, unsupported canonical units, conflicting values, and missing financial inputs. Findings persist per workflow, are exposed in workflow/report responses, and ERROR findings block report publication while warning-level ambiguity/unavailability remains visible.
+- #35: a disabled-by-default OpenAI Responses adapter uses strict structured output, bounded allow-listed source context, local citation validation, timeout/retry classification, and safe agent-run token/cost telemetry. It has mocked contract coverage; an OpenAI credential in Secrets Manager and opt-in staging smoke remain external gates.
 
 ## Verified working locally
 
@@ -51,4 +52,4 @@ ForgeFlow is an internal analyst-team MVP for durable, source-grounded company a
 
 ## Next planned issue
 
-#35 — integrate OpenAI Responses API with constrained structured output.
+#36 — assemble complete typed reports from persisted data.
