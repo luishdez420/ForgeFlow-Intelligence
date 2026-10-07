@@ -33,12 +33,13 @@ ForgeFlow is an internal analyst-team MVP for durable, source-grounded company a
 - #35: a disabled-by-default OpenAI Responses adapter uses strict structured output, bounded allow-listed source context, local citation validation, timeout/retry classification, and safe agent-run token/cost telemetry. It has mocked contract coverage; an OpenAI credential in Secrets Manager and opt-in staging smoke remain external gates.
 - #36: report assembly now reads persisted facts and financial metrics, emits typed FACT/CALCULATION/UNAVAILABLE items, preserves cited AI items, and blocks publication on ERROR validation findings.
 - #37: closed. The analyst console shows owned analysis history, polls active workflows, explains retry/recovery state, surfaces validation findings, filters typed report items, and exposes persisted calculation/source-document provenance. An allow-listed analyst completed the signed-in, live-SEC workflow and report-evidence walkthrough locally on 2026-10-07.
+- #38: analyst feedback is now append-only and tied to its exact published report item/version. Analysts can mark an item useful, unclear, unsupported, or incorrect with an optional comment; administrators have an open-only review queue and may resolve an item without changing any authoritative evidence. Automated verification is complete; an analyst/admin browser walkthrough remains the manual closure gate.
 
 ## Verified working locally
 
 - Docker Compose starts healthy PostgreSQL on `127.0.0.1:15432` and Redis on `127.0.0.1:16379`.
 - The API persists and retrieves workflows, supports idempotency keys, validates DAGs, and atomically claims tasks.
-- Migrations `001_initial_schema.sql` and `002_task_retry_policy.sql` are applied to the local development database.
+- Migrations through `005_report_feedback.sql` are applied to the local development database.
 - Worker registration and one-shot graceful shutdown were smoke-tested against local PostgreSQL; the synthetic worker record was removed afterward.
 - The CI workflow starts Compose PostgreSQL and Redis, applies migrations, and runs the API integration suite.
 
@@ -54,4 +55,4 @@ ForgeFlow is an internal analyst-team MVP for durable, source-grounded company a
 
 ## Next planned issue
 
-#38 — add analyst feedback and report-quality review: capture item-level analyst feedback without mutating authoritative data, and provide an administrator review queue.
+#38 — add analyst feedback and report-quality review: implementation is pushed after verification; awaiting a two-user analyst/admin browser walkthrough before closure.

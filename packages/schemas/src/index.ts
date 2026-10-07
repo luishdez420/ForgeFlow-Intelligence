@@ -63,6 +63,13 @@ export const invitationStatusSchema = z.enum([
   "REVOKED",
   "EXPIRED",
 ]);
+export const feedbackClassificationSchema = z.enum([
+  "USEFUL",
+  "UNCLEAR",
+  "UNSUPPORTED",
+  "INCORRECT",
+]);
+export const feedbackStateSchema = z.enum(["OPEN", "RESOLVED"]);
 
 const utcDateTimeSchema = z.string().datetime({ offset: true });
 const workflowIdSchema = z.uuid();
@@ -162,6 +169,33 @@ export const reportDetailSchema = z.object({
   validationFindings: z.array(validationFindingSchema),
 });
 
+export const createReportItemFeedbackSchema = z.object({
+  classification: feedbackClassificationSchema,
+  comment: z.string().trim().min(1).max(2000).optional(),
+});
+
+export const reportItemFeedbackSchema = z.object({
+  id: z.uuid(),
+  reportId: z.uuid(),
+  reportItemId: z.uuid(),
+  reportVersion: utcDateTimeSchema,
+  classification: feedbackClassificationSchema,
+  comment: z.string().min(1).max(2000).nullable(),
+  state: feedbackStateSchema,
+  createdAt: utcDateTimeSchema,
+  submittedByEmail: z.string().email().optional(),
+  ticker: tickerSchema.optional(),
+  reportItemTitle: z.string().min(1).max(300).optional(),
+});
+
+export const reportFeedbackListSchema = z.object({
+  feedback: z.array(reportItemFeedbackSchema),
+});
+
+export const updateReportItemFeedbackSchema = z.object({
+  state: z.literal("RESOLVED"),
+});
+
 export const workflowHistoryItemSchema = z.object({
   id: workflowIdSchema,
   ticker: tickerSchema,
@@ -210,3 +244,11 @@ export type ApiError = z.infer<typeof apiErrorSchema>;
 export type PilotRole = z.infer<typeof pilotRoleSchema>;
 export type UserStatus = z.infer<typeof userStatusSchema>;
 export type InvitationStatus = z.infer<typeof invitationStatusSchema>;
+export type FeedbackClassification = z.infer<
+  typeof feedbackClassificationSchema
+>;
+export type FeedbackState = z.infer<typeof feedbackStateSchema>;
+export type CreateReportItemFeedback = z.infer<
+  typeof createReportItemFeedbackSchema
+>;
+export type ReportItemFeedback = z.infer<typeof reportItemFeedbackSchema>;

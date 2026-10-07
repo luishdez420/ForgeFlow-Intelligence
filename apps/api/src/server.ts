@@ -2,9 +2,13 @@ import { createServer } from "node:http";
 
 import {
   apiErrorSchema,
+  createReportItemFeedbackSchema,
   createCompanyAnalysisWorkflowRequestSchema,
   createCompanyAnalysisWorkflowResponseSchema,
   reportDetailSchema,
+  reportFeedbackListSchema,
+  reportItemFeedbackSchema,
+  updateReportItemFeedbackSchema,
   workflowDetailSchema,
   workflowHistorySchema,
 } from "@forgeflow/schemas";
@@ -16,6 +20,13 @@ import {
   WorkflowNotFoundError,
 } from "./workflows.js";
 import { getReport, ReportNotFoundError } from "./reports.js";
+import {
+  getOpenFeedbackForReview,
+  getReportFeedback,
+  ReportFeedbackNotFoundError,
+  resolveReportItemFeedback,
+  submitReportItemFeedback,
+} from "./report-feedback.js";
 import {
   authenticateInternalActor,
   InternalRequestError,
@@ -147,10 +158,95 @@ const server = createServer(async (request, response) => {
       );
       return;
     }
+    const reportFeedbackMatch = pathname.match(
+      /^\/reports\/([0-9a-f-]{36})\/feedback$/i,
+    );
+    if (request.method === "GET" && reportFeedbackMatch) {
+      sendJson(
+        response,
+        200,
+        reportFeedbackListSchema.parse({
+          feedback: await getReportFeedback(reportFeedbackMatch[1], actor),
+        }),
+      );
+      return;
+    }
+    const itemFeedbackMatch = pathname.match(
+      /^\/report-items\/([0-9a-f-]{36})\/feedback$/i,
+    );
+    if (request.method === "POST" && itemFeedbackMatch) {
+      const parsed = createReportItemFeedbackSchema.safeParse(
+        readJson(requestBody),
+      );
+      if (!parsed.success) {
+        sendJson(
+          response,
+          400,
+          apiErrorSchema.parse({
+            error: {
+              code: "VALIDATION_ERROR",
+              message:
+                "Feedback must include a valid classification and optional comment.",
+            },
+          }),
+        );
+        return;
+      }
+      sendJson(
+        response,
+        201,
+        reportItemFeedbackSchema.parse(
+          await submitReportItemFeedback(
+            actor,
+            itemFeedbackMatch[1],
+            parsed.data,
+          ),
+        ),
+      );
+      return;
+    }
+    if (request.method === "GET" && pathname === "/feedback/review") {
+      sendJson(
+        response,
+        200,
+        reportFeedbackListSchema.parse({
+          feedback: await getOpenFeedbackForReview(actor),
+        }),
+      );
+      return;
+    }
+    const feedbackMatch = pathname.match(/^\/feedback\/([0-9a-f-]{36})$/i);
+    if (request.method === "PATCH" && feedbackMatch) {
+      const parsed = updateReportItemFeedbackSchema.safeParse(
+        readJson(requestBody),
+      );
+      if (!parsed.success) {
+        sendJson(
+          response,
+          400,
+          apiErrorSchema.parse({
+            error: {
+              code: "VALIDATION_ERROR",
+              message: "Only resolution is supported.",
+            },
+          }),
+        );
+        return;
+      }
+      sendJson(
+        response,
+        200,
+        reportItemFeedbackSchema.parse(
+          await resolveReportItemFeedback(actor, feedbackMatch[1]),
+        ),
+      );
+      return;
+    }
   } catch (error) {
     if (
       error instanceof WorkflowNotFoundError ||
-      error instanceof ReportNotFoundError
+      error instanceof ReportNotFoundError ||
+      error instanceof ReportFeedbackNotFoundError
     ) {
       sendJson(
         response,

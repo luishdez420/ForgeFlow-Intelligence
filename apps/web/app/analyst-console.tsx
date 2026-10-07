@@ -50,6 +50,23 @@ type ReportItem = {
   }[];
 };
 type Report = { items: ReportItem[]; validationFindings: ValidationFinding[] };
+type FeedbackClassification =
+  "USEFUL" | "UNCLEAR" | "UNSUPPORTED" | "INCORRECT";
+type Feedback = {
+  id: string;
+  reportItemId: string;
+  classification: FeedbackClassification;
+  comment: string | null;
+  state: "OPEN" | "RESOLVED";
+  createdAt: string;
+  submittedByEmail?: string;
+  ticker?: string;
+  reportItemTitle?: string;
+};
+type FeedbackDraft = {
+  classification: FeedbackClassification;
+  comment: string;
+};
 
 const terminalStates = new Set(["SUCCEEDED", "FAILED", "CANCELLED"]);
 const reportKinds: Array<ReportItem["kind"] | "ALL"> = [
@@ -90,6 +107,14 @@ export function AnalystConsole({ analystEmail }: { analystEmail: string }) {
   );
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState<(typeof reportKinds)[number]>("ALL");
+  const [feedback, setFeedback] = useState<Feedback[]>([]);
+  const [feedbackDrafts, setFeedbackDrafts] = useState<
+    Record<string, FeedbackDraft>
+  >({});
+  const [submittingFeedback, setSubmittingFeedback] = useState<string | null>(
+    null,
+  );
+  const [reviewFeedback, setReviewFeedback] = useState<Feedback[] | null>(null);
 
   const loadReport = useCallback(async (workflowId: string) => {
     const response = await fetch(`/api/reports/${workflowId}`, {
@@ -97,6 +122,28 @@ export function AnalystConsole({ analystEmail }: { analystEmail: string }) {
     });
     if (response.ok) setReport((await response.json()) as Report);
     else if (response.status === 404) setReport(null);
+  }, []);
+
+  const loadFeedback = useCallback(async (workflowId: string) => {
+    const response = await fetch(`/api/reports/${workflowId}/feedback`, {
+      cache: "no-store",
+    });
+    if (response.ok) {
+      const data = (await response.json()) as { feedback: Feedback[] };
+      setFeedback(data.feedback);
+    } else if (response.status === 404) {
+      setFeedback([]);
+    }
+  }, []);
+
+  const loadReviewFeedback = useCallback(async () => {
+    const response = await fetch("/api/feedback/review", { cache: "no-store" });
+    if (response.ok) {
+      const data = (await response.json()) as { feedback: Feedback[] };
+      setReviewFeedback(data.feedback);
+    } else if (response.status === 403) {
+      setReviewFeedback(null);
+    }
   }, []);
 
   const loadWorkflow = useCallback(
@@ -108,9 +155,10 @@ export function AnalystConsole({ analystEmail }: { analystEmail: string }) {
       const next = (await response.json()) as Workflow;
       setWorkflow(next);
       await loadReport(workflowId);
+      await loadFeedback(workflowId);
       return next;
     },
-    [loadReport],
+    [loadFeedback, loadReport],
   );
 
   const loadHistory = useCallback(async () => {
@@ -126,6 +174,10 @@ export function AnalystConsole({ analystEmail }: { analystEmail: string }) {
   useEffect(() => {
     void loadHistory();
   }, [loadHistory]);
+
+  useEffect(() => {
+    void loadReviewFeedback();
+  }, [loadReviewFeedback]);
 
   useEffect(() => {
     if (!workflow || terminalStates.has(workflow.state)) return;
@@ -196,6 +248,76 @@ export function AnalystConsole({ analystEmail }: { analystEmail: string }) {
     } finally {
       setLoading(false);
     }
+  }
+
+  function updateFeedbackDraft(
+    reportItemId: string,
+    update: Partial<FeedbackDraft>,
+  ) {
+    setFeedbackDrafts((current) => {
+      const draft = current[reportItemId] ?? {
+        classification: "USEFUL" as const,
+        comment: "",
+      };
+      return { ...current, [reportItemId]: { ...draft, ...update } };
+    });
+  }
+
+  async function submitFeedback(event: FormEvent, reportItemId: string) {
+    event.preventDefault();
+    const draft = feedbackDrafts[reportItemId] ?? {
+      classification: "USEFUL" as const,
+      comment: "",
+    };
+    setSubmittingFeedback(reportItemId);
+    try {
+      const response = await fetch(
+        `/api/report-items/${reportItemId}/feedback`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            classification: draft.classification,
+            ...(draft.comment.trim() ? { comment: draft.comment.trim() } : {}),
+          }),
+        },
+      );
+      if (!response.ok) {
+        throw new Error("Feedback could not be saved. Please try again.");
+      }
+      const saved = (await response.json()) as Feedback;
+      setFeedback((current) => [saved, ...current]);
+      setFeedbackDrafts((current) => ({
+        ...current,
+        [reportItemId]: { classification: "USEFUL", comment: "" },
+      }));
+      setMessage("Feedback saved for this exact report item and version.");
+      await loadReviewFeedback();
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : "Feedback could not be saved.",
+      );
+    } finally {
+      setSubmittingFeedback(null);
+    }
+  }
+
+  async function resolveFeedback(feedbackId: string) {
+    const response = await fetch(`/api/feedback/${feedbackId}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ state: "RESOLVED" }),
+    });
+    if (!response.ok) {
+      setMessage("Feedback could not be resolved. Please try again.");
+      return;
+    }
+    setReviewFeedback(
+      (current) => current?.filter((item) => item.id !== feedbackId) ?? null,
+    );
+    setMessage(
+      "Feedback marked resolved. Source facts and metrics were unchanged.",
+    );
   }
 
   return (
@@ -382,10 +504,106 @@ export function AnalystConsole({ analystEmail }: { analystEmail: string }) {
                   </a>
                 ))}
               </div>
+              <form
+                className="feedback-form"
+                onSubmit={(event) => void submitFeedback(event, item.id)}
+              >
+                <div>
+                  <h4>Quality review</h4>
+                  <p>
+                    Record feedback on this report item. It never edits source
+                    facts, metrics, or the report itself.
+                  </p>
+                </div>
+                <label>
+                  Assessment
+                  <select
+                    value={feedbackDrafts[item.id]?.classification ?? "USEFUL"}
+                    onChange={(event) =>
+                      updateFeedbackDraft(item.id, {
+                        classification: event.target
+                          .value as FeedbackClassification,
+                      })
+                    }
+                  >
+                    <option value="USEFUL">Useful</option>
+                    <option value="UNCLEAR">Unclear</option>
+                    <option value="UNSUPPORTED">Unsupported</option>
+                    <option value="INCORRECT">Incorrect</option>
+                  </select>
+                </label>
+                <label>
+                  Comment <small>(optional)</small>
+                  <textarea
+                    value={feedbackDrafts[item.id]?.comment ?? ""}
+                    maxLength={2000}
+                    onChange={(event) =>
+                      updateFeedbackDraft(item.id, {
+                        comment: event.target.value,
+                      })
+                    }
+                  />
+                </label>
+                <button disabled={submittingFeedback === item.id}>
+                  {submittingFeedback === item.id ? "Saving…" : "Save feedback"}
+                </button>
+                {feedback.some((entry) => entry.reportItemId === item.id) && (
+                  <small className="feedback-saved">
+                    Your feedback for this item is saved.
+                  </small>
+                )}
+              </form>
             </article>
           ))}
           {filteredItems.length === 0 && (
             <p className="empty">No report items match this filter.</p>
+          )}
+        </section>
+      )}
+
+      {reviewFeedback && (
+        <section className="review-queue" aria-labelledby="review-title">
+          <div className="section-heading">
+            <div>
+              <h2 id="review-title">Open quality review</h2>
+              <p className="muted">
+                Administrator-only queue. Resolving feedback never changes
+                authoritative facts or metrics.
+              </p>
+            </div>
+            <span className="state">{reviewFeedback.length} open</span>
+          </div>
+          {reviewFeedback.length === 0 ? (
+            <p className="empty">No feedback needs review.</p>
+          ) : (
+            <ol>
+              {reviewFeedback.map((entry) => (
+                <li key={entry.id}>
+                  <div>
+                    <strong>{entry.ticker ?? "Report"}</strong>
+                    <span
+                      className={`kind feedback-${entry.classification.toLowerCase()}`}
+                    >
+                      {entry.classification.toLowerCase()}
+                    </span>
+                    <p>{entry.reportItemTitle ?? "Historical report item"}</p>
+                    {entry.comment && (
+                      <p className="feedback-comment">{entry.comment}</p>
+                    )}
+                    <small>
+                      {entry.submittedByEmail ?? "Analyst"} ·{" "}
+                      {formatDate(entry.createdAt)}
+                    </small>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void resolveFeedback(entry.id)}
+                  >
+                    Mark resolved
+                  </button>
+                </li>
+              ))}
+            </ol>
           )}
         </section>
       )}

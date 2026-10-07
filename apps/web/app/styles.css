@@ -77,14 +77,23 @@ label {
   display: flex;
   margin-top: 0.5rem;
 }
-input {
+input,
+select,
+textarea {
   min-width: 0;
   width: 100%;
   padding: 0.85rem;
   border: 1px solid #7d8c83;
   background: #fafbf7;
   font: inherit;
+}
+input {
   text-transform: uppercase;
+}
+textarea {
+  min-height: 4.5rem;
+  resize: vertical;
+  text-transform: none;
 }
 button {
   border: 0;
@@ -284,6 +293,86 @@ button:disabled {
   overflow-x: auto;
   padding: 0.75rem;
 }
+.feedback-form {
+  align-items: end;
+  border-top: 1px solid #c3ccc4;
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns:
+    minmax(12rem, 1.25fr) minmax(9rem, 0.75fr) minmax(14rem, 1fr)
+    auto;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+}
+.feedback-form h4 {
+  font-size: 0.9rem;
+  margin: 0;
+}
+.feedback-form p {
+  color: #59675f;
+  font-size: 0.82rem;
+  margin-top: 0.3rem;
+}
+.feedback-form label {
+  display: grid;
+  gap: 0.35rem;
+}
+.feedback-form select,
+.feedback-form textarea {
+  background: #fff;
+  padding: 0.55rem;
+}
+.feedback-form button,
+.review-queue button {
+  padding: 0.65rem 0.75rem;
+}
+.feedback-saved {
+  color: #1d6655;
+  grid-column: 2 / -1;
+}
+.review-queue {
+  margin-top: 2.5rem;
+}
+.review-queue ol {
+  border-top: 1px solid #c3ccc4;
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+}
+.review-queue li {
+  align-items: start;
+  border-bottom: 1px solid #c3ccc4;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  padding: 1rem 0;
+}
+.review-queue strong {
+  margin-right: 0.5rem;
+}
+.review-queue p {
+  margin-top: 0.45rem;
+}
+.review-queue small {
+  color: #59675f;
+}
+.feedback-comment {
+  max-width: 65ch;
+}
+.feedback-unsupported,
+.feedback-incorrect {
+  background: #f2dfb5;
+  color: #6a4b08;
+  margin-left: 0.4rem;
+}
+.feedback-unclear {
+  background: #e3e0dc;
+  color: #625e59;
+  margin-left: 0.4rem;
+}
+.feedback-useful {
+  margin-left: 0.4rem;
+}
 .empty {
   background: #fafbf7;
   color: #59675f;
@@ -333,5 +422,19 @@ button:disabled {
   }
   button {
     width: 100%;
+  }
+  .feedback-form {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+  .feedback-saved {
+    grid-column: auto;
+  }
+  .review-queue li {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .review-queue button {
+    align-self: start;
   }
 }
