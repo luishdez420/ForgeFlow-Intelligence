@@ -19,6 +19,96 @@ export class ValidationGateError extends Error {
   }
 }
 
+export async function assemblePersistedReport(
+  workflowId: string,
+): Promise<string> {
+  return withTransaction(async (client) => {
+    const workflow = await client.query<{ company_id: string }>(
+      "SELECT company_id FROM forgeflow.workflow_runs WHERE id = $1 FOR UPDATE",
+      [workflowId],
+    );
+    const companyId = workflow.rows[0]?.company_id;
+    if (!companyId) throw new ReportNotFoundError(workflowId);
+    const blocking = await client.query<{ count: string }>(
+      "SELECT count(*) FROM forgeflow.workflow_validation_findings WHERE workflow_run_id = $1 AND severity = 'ERROR'",
+      [workflowId],
+    );
+    if (Number(blocking.rows[0]?.count ?? 0) > 0)
+      throw new ValidationGateError();
+    const report = await client.query<{ id: string }>(
+      "INSERT INTO forgeflow.reports (workflow_run_id, company_id, state) VALUES ($1, $2, 'DRAFT') ON CONFLICT (workflow_run_id) DO UPDATE SET state = 'DRAFT', published_at = NULL RETURNING id",
+      [workflowId, companyId],
+    );
+    const reportId = report.rows[0]!.id;
+    await client.query(
+      "DELETE FROM forgeflow.report_items WHERE report_id = $1 AND item_kind <> 'AI_ANALYSIS'",
+      [reportId],
+    );
+    const facts = await client.query<{
+      id: string;
+      field_name: string;
+      normalized_value: { value?: unknown } | null;
+      raw_value: { reason?: string };
+    }>(
+      "SELECT id, field_name, normalized_value, raw_value FROM forgeflow.facts WHERE company_id = $1 ORDER BY created_at",
+      [companyId],
+    );
+    const nextOrder = await client.query<{ next_order: number }>(
+      "SELECT COALESCE(MAX(display_order), -1) + 1 AS next_order FROM forgeflow.report_items WHERE report_id = $1",
+      [reportId],
+    );
+    let order = nextOrder.rows[0]?.next_order ?? 0;
+    for (const fact of facts.rows) {
+      const unavailable = !fact.normalized_value;
+      const item = await client.query<{ id: string }>(
+        "INSERT INTO forgeflow.report_items (report_id, item_kind, section, title, content, display_order) VALUES ($1, $2, 'Evidence', $3, $4, $5) RETURNING id",
+        [
+          reportId,
+          unavailable ? "UNAVAILABLE" : "FACT",
+          fact.field_name,
+          unavailable
+            ? (fact.raw_value.reason ?? "Unavailable")
+            : String(fact.normalized_value?.value),
+          order++,
+        ],
+      );
+      if (!unavailable)
+        await client.query(
+          "INSERT INTO forgeflow.report_item_sources (report_item_id, source_id) SELECT $1, source_id FROM forgeflow.facts WHERE id = $2",
+          [item.rows[0]!.id, fact.id],
+        );
+    }
+    const metrics = await client.query<{
+      id: string;
+      metric_name: string;
+      value: string | null;
+      unit: string;
+      calculation_status: string;
+    }>(
+      "SELECT id, metric_name, value, unit, calculation_status FROM forgeflow.financial_metrics WHERE company_id = $1 ORDER BY calculated_at",
+      [companyId],
+    );
+    for (const metric of metrics.rows) {
+      await client.query(
+        "INSERT INTO forgeflow.report_items (report_id, item_kind, section, title, content, display_order, financial_metric_id) VALUES ($1, $2, 'Calculations', $3, $4, $5, $6)",
+        [
+          reportId,
+          metric.calculation_status === "CALCULATED"
+            ? "CALCULATION"
+            : "UNAVAILABLE",
+          metric.metric_name,
+          metric.value === null
+            ? metric.calculation_status
+            : `${metric.value} ${metric.unit}`,
+          order++,
+          metric.id,
+        ],
+      );
+    }
+    return reportId;
+  });
+}
+
 export async function persistGroundedAiReport(
   workflowId: string,
   rawOutput: string,

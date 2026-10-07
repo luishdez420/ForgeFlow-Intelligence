@@ -181,3 +181,9 @@ This is an append-only record of delivery evidence, decisions, failures, and def
 - Added a disabled-by-default Responses API adapter using `text.format` JSON Schema with strict output, `store: false`, a bounded eight-source/3,000-character allow-listed context, and a source-grounded prompt that cannot write facts or metrics.
 - Model refusals, malformed output, unsupported citations, provider failures, and timeout behavior produce explicit explainable errors. One transient provider failure is retried; successful and failed agent runs preserve safe structured output/error codes, token telemetry, optional configured cost estimates, and a prompt fingerprint without storing credentials or raw prompt content.
 - Verification passed formatting, workspace type checks, and 31 non-integration workspace tests, including mocked Responses API contract coverage for source bounds, strict schema, refusal, malformed/unsupported citations, and retry behavior. No OpenAI key or live provider request was used. A Secrets Manager-configured, opt-in staging smoke test remains required before #35 can close.
+
+## 2026-10-06 — Issue #36 persisted typed-report assembly delivered
+
+- Added transactional report assembly from authoritative persisted facts and financial metrics. It preserves AI analysis, produces FACT/CALCULATION/UNAVAILABLE item types, maintains source links for facts, and respects validation gates.
+- The assembler is idempotent, including when rebuilding an existing published report with retained AI items; it resets the published timestamp correctly and allocates non-conflicting display positions.
+- Verification passed 11 API PostgreSQL integration tests, workspace type checks, 32 non-integration workspace tests, formatting, and diff checks.
