@@ -217,3 +217,9 @@ This is an append-only record of delivery evidence, decisions, failures, and def
 - Activated the versioned SEC taxonomy mapping in the live `NORMALIZE_FINANCIAL_DATA` worker task. Report assembly now omits raw XBRL observation rows and instead reads the persisted canonical records (for example Revenue, Operating income, and Total assets), while preserving the raw observations and their source/document identity in PostgreSQL.
 - Added canonical-mapping handler coverage and updated database integration coverage so an assembled report is verified from canonical evidence. The report UI formats canonical field names for analyst readability.
 - Verification passed 27 worker unit tests (4 opt-in integration tests skipped), 31 worker tests against local PostgreSQL, workspace formatting/type checks, 29 non-integration TypeScript tests, the Impeccable detector, and diff checks. A new workflow is required to use the revised task graph; historical succeeded runs retain their original evidence report.
+
+## 2026-10-07 — Issue #37 manual analyst acceptance passed
+
+- An allow-listed analyst completed the local Google OAuth sign-in flow and ran a live SEC EDGAR-backed company workflow through terminal publication. The console refreshed the durable workflow state, displayed its typed persisted report, and exposed source-linked evidence and data-quality findings for review.
+- This satisfies the meaningful authenticated-browser acceptance gate for #37. The test was intentionally scoped to the available MVP path: market data remains explicitly unavailable without an approved vendor, and OpenAI analysis remains unconfigured and absent rather than fabricated.
+- #37 can now close. The next implementation target is #38, item-level analyst feedback and an administrator review queue.
