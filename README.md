@@ -39,6 +39,8 @@ web app. `npm run dev:web` and `npm run dev:api` load it automatically, so
 there is no need to re-export values in each new terminal. Keep `AUTH_SECRET`
 and `FORGEFLOW_INTERNAL_API_SECRET` stable locally: the web and API must share
 the latter, and changing the former invalidates active browser sessions.
+The web command explicitly uses port `3000`; `PORT=3001` in `.env` is reserved
+for the API.
 
 Start the analyst web app separately with:
 
