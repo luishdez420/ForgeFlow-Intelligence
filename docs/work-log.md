@@ -230,3 +230,8 @@ This is an append-only record of delivery evidence, decisions, failures, and def
 - Analysts can submit Useful, Unclear, Unsupported, or Incorrect feedback with an optional 2,000-character comment through the same-origin authenticated API. Feedback is audit-recorded without copying free-form comments into audit metadata. Submission is limited to the workflow owner (or an administrator), and it never updates sources, facts, metrics, or report items.
 - Administrators can retrieve the unresolved review queue and resolve an item. The console reveals that queue only to authorized administrators; it shows an inline, keyboard-accessible feedback form on every persisted report item for analysts.
 - Verification passed migration application, the focused PostgreSQL feedback integration test, all four API PostgreSQL integration files (12 tests), workspace type checks, API/web/schema tests (29 non-integration tests), formatting, diff checks, and the Impeccable UI detector. Manual closure gate: sign in as an analyst to submit feedback, then as an administrator to resolve it and confirm the report evidence remains unchanged.
+
+## 2026-10-07 — Issue #38 manual feedback acceptance passed
+
+- An operator submitted feedback from the persisted report and confirmed that the review path works. The raw SEC Company Facts source was also inspected; it remains an official machine-readable XBRL evidence artifact rather than an analyst-oriented document.
+- The feedback workflow is now eligible for closure. A follow-up UI clarity improvement will label the raw SEC evidence link and explain its purpose so analysts do not mistake it for a rendered report.
