@@ -48,6 +48,24 @@ Start the analyst web app separately with:
 npm run dev:web
 ```
 
+Start a local worker in a third terminal to claim and execute persisted
+workflow tasks:
+
+```sh
+npm run dev:worker
+```
+
+The worker requires the explicit live SEC settings in local `.env` before it
+can retrieve company evidence:
+
+```dotenv
+SEC_EDGAR_LIVE_ENABLED=true
+SEC_EDGAR_USER_AGENT="ForgeFlow Intelligence analyst@example.com"
+```
+
+Use a real contact email that you control. Market data remains explicitly
+unavailable until a licensed provider is approved.
+
 The local API health endpoint is `http://localhost:3001/health`. PostgreSQL
 (`15432`) and Redis (`16379`) are intentionally bound to loopback-only ports
 and use development-only credentials defined in [`.env.example`](.env.example).
