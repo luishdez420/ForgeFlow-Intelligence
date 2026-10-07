@@ -73,3 +73,9 @@ variable "route53_zone_id" {
   type    = string
   default = null
 }
+
+variable "alarm_email" {
+  type      = string
+  default   = null
+  sensitive = true
+}

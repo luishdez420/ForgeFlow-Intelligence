@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import json
 import signal
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
@@ -41,6 +42,11 @@ class WorkerRepository(Protocol):
 
 TaskHandler = Callable[[ClaimedTask], None]
 logger = logging.getLogger(__name__)
+
+
+def emit_event(event: str, **fields: object) -> None:
+    """Write safe structured lifecycle telemetry for CloudWatch Logs Insights."""
+    logger.info(json.dumps({"service": "worker", "event": event, **fields}, sort_keys=True, default=str))
 
 
 class TaskExecutionError(Exception):
@@ -84,6 +90,7 @@ class WorkerRuntime:
         if self._worker_id is None:
             self._worker_id = self._repository.register(self._name, sorted(self._handlers))
             self._last_heartbeat_at = monotonic()
+            emit_event("worker.registered", worker_id=self._worker_id, worker_name=self._name)
         return self._worker_id
 
     def request_shutdown(self) -> None:
@@ -111,20 +118,25 @@ class WorkerRuntime:
         if task is None:
             return False
 
+        emit_event("task.claimed", workflow_id=task.workflow_id, task_id=task.task_id, task_kind=task.kind, attempt=task.attempt_number)
+
         try:
             self._handlers[task.kind](task)
             self._repository.record_task_success(task.task_id, task.lease_token)
+            emit_event("task.succeeded", workflow_id=task.workflow_id, task_id=task.task_id, task_kind=task.kind, attempt=task.attempt_number)
             return True
         except TaskExecutionError as error:
             logger.exception("Task %s failed with %s", task.task_id, error.code)
             self._repository.record_task_failure(
                 task.task_id, task.lease_token, error.classification, error.code, str(error)
             )
+            emit_event("task.failed", workflow_id=task.workflow_id, task_id=task.task_id, task_kind=task.kind, attempt=task.attempt_number, error_code=error.code, classification=error.classification)
         except Exception as error:
             logger.exception("Task %s raised an unexpected handler exception", task.task_id)
             self._repository.record_task_failure(
                 task.task_id, task.lease_token, "TRANSIENT", "HANDLER_EXCEPTION", str(error)
             )
+            emit_event("task.failed", workflow_id=task.workflow_id, task_id=task.task_id, task_kind=task.kind, attempt=task.attempt_number, error_code="HANDLER_EXCEPTION", classification="TRANSIENT")
         return False
 
     def run_forever(self) -> None:

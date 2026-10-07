@@ -32,6 +32,7 @@ import {
   InternalRequestError,
 } from "./internal-auth.js";
 import { AccessDeniedError } from "./access-control.js";
+import { correlationId, emitOperationalEvent } from "./observability.js";
 
 const port = Number.parseInt(process.env.PORT ?? "3001", 10);
 
@@ -62,6 +63,20 @@ function readJson(rawBody: string): unknown {
 }
 
 const server = createServer(async (request, response) => {
+  const requestId = correlationId(
+    request.headers["x-correlation-id"] as string | undefined,
+  );
+  response.setHeader("x-correlation-id", requestId);
+  const startedAt = performance.now();
+  response.once("finish", () => {
+    emitOperationalEvent("api.request.completed", {
+      correlationId: requestId,
+      method: request.method ?? "GET",
+      path: new URL(request.url ?? "/", "http://localhost").pathname,
+      statusCode: response.statusCode,
+      durationMs: Math.round(performance.now() - startedAt),
+    });
+  });
   if (request.method === "GET" && request.url === "/health") {
     sendJson(response, 200, { status: "ok", service: "forgeflow-api" });
     return;

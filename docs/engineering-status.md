@@ -34,6 +34,7 @@ ForgeFlow is an internal analyst-team MVP for durable, source-grounded company a
 - #36: report assembly now reads persisted facts and financial metrics, emits typed FACT/CALCULATION/UNAVAILABLE items, preserves cited AI items, and blocks publication on ERROR validation findings.
 - #37: closed. The analyst console shows owned analysis history, polls active workflows, explains retry/recovery state, surfaces validation findings, filters typed report items, and exposes persisted calculation/source-document provenance. An allow-listed analyst completed the signed-in, live-SEC workflow and report-evidence walkthrough locally on 2026-10-07.
 - #38: closed. Analyst feedback is append-only and tied to its exact published report item/version. Analysts can mark an item useful, unclear, unsupported, or incorrect with an optional comment; administrators have an open-only review queue and may resolve an item without changing any authoritative evidence. The analyst/admin browser walkthrough passed locally on 2026-10-07.
+- #39: structured API/worker lifecycle telemetry, correlation IDs, safe redaction, initial CloudWatch failure/capacity alarms, and an operations runbook are implemented. Automated code verification passed; Terraform is unavailable locally and the AWS alert-route/provider-outage/worker-termination drills remain required before closure.
 
 ## Verified working locally
 
@@ -55,4 +56,4 @@ ForgeFlow is an internal analyst-team MVP for durable, source-grounded company a
 
 ## Next planned issue
 
-#39 — add production observability, alerting, and operational runbooks: structured telemetry, correlation, dashboards/alerts, and documented operator response procedures.
+#39 — add production observability, alerting, and operational runbooks: implementation is pushed after local verification; awaiting Terraform validation and AWS alert/recovery drills before closure.

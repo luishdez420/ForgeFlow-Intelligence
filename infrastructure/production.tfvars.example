@@ -9,3 +9,5 @@ maintenance_window       = "sun:04:00-sun:04:30"
 # Set database_master_password and redis_auth_token only through TF_VAR_*.
 # domain_name = "forgeflow.example.com"
 # route53_zone_id = "Z123456789"
+# Optional: alert email creates an SNS subscription that must be confirmed in AWS.
+# alarm_email = "oncall@example.com"

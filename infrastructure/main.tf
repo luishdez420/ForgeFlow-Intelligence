@@ -166,6 +166,58 @@ resource "aws_cloudwatch_log_group" "service" {
   name              = "/forgeflow/${var.environment}/${each.key}"
   retention_in_days = 30
 }
+
+resource "aws_sns_topic" "operations" {
+  count = var.alarm_email == null ? 0 : 1
+  name  = "${local.name}-operations"
+}
+
+resource "aws_sns_topic_subscription" "operations_email" {
+  count     = var.alarm_email == null ? 0 : 1
+  topic_arn = aws_sns_topic.operations[0].arn
+  protocol  = "email"
+  endpoint  = var.alarm_email
+}
+
+resource "aws_cloudwatch_log_metric_filter" "worker_task_failure" {
+  name           = "${local.name}-worker-task-failure"
+  log_group_name = aws_cloudwatch_log_group.service["worker"].name
+  pattern        = "{ $.event = \"task.failed\" }"
+  metric_transformation {
+    name      = "WorkerTaskFailures"
+    namespace = "ForgeFlow/${var.environment}"
+    value     = "1"
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "worker_task_failure" {
+  alarm_name          = "${local.name}-worker-task-failures"
+  alarm_description   = "Sustained worker task failures require workflow/provider investigation."
+  namespace           = "ForgeFlow/${var.environment}"
+  metric_name         = aws_cloudwatch_log_metric_filter.worker_task_failure.metric_transformation[0].name
+  statistic            = "Sum"
+  period               = 300
+  evaluation_periods   = 2
+  threshold            = 5
+  comparison_operator  = "GreaterThanOrEqualToThreshold"
+  treat_missing_data   = "notBreaching"
+  alarm_actions        = var.alarm_email == null ? [] : [aws_sns_topic.operations[0].arn]
+}
+
+resource "aws_cloudwatch_metric_alarm" "database_cpu" {
+  alarm_name         = "${local.name}-database-cpu"
+  alarm_description  = "RDS CPU capacity risk."
+  namespace          = "AWS/RDS"
+  metric_name        = "CPUUtilization"
+  statistic           = "Average"
+  period              = 300
+  evaluation_periods  = 3
+  threshold           = 80
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  dimensions = { DBInstanceIdentifier = aws_db_instance.pilot.id }
+  treat_missing_data = "notBreaching"
+  alarm_actions      = var.alarm_email == null ? [] : [aws_sns_topic.operations[0].arn]
+}
 resource "aws_secretsmanager_secret" "runtime" {
   for_each = toset(["database", "redis", "google-oauth", "openai", "sec-edgar"])
   name     = "forgeflow/${var.environment}/${each.key}"

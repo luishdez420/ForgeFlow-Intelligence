@@ -235,3 +235,10 @@ This is an append-only record of delivery evidence, decisions, failures, and def
 
 - An operator submitted feedback from the persisted report and confirmed that the review path works. The raw SEC Company Facts source was also inspected; it remains an official machine-readable XBRL evidence artifact rather than an analyst-oriented document.
 - The feedback workflow is now eligible for closure. A follow-up UI clarity improvement will label the raw SEC evidence link and explain its purpose so analysts do not mistake it for a rendered report.
+
+## 2026-10-07 — Issue #39 observability foundation delivered locally
+
+- Added safe JSON operational events to the API with per-request `x-correlation-id`, duration, route, and status. Correlation IDs are accepted only in UUID form or generated afresh, and recursive telemetry redaction removes values for secret-bearing keys.
+- Worker lifecycle telemetry now emits registered, claimed, succeeded, and failed task events with workflow/task/attempt correlation, but never lease tokens or provider credentials.
+- Added CloudWatch log-to-metric transformation for worker failures, configurable optional SNS alert routing, worker-failure and RDS CPU alarms, and a concise operator runbook for correlation, outages, recovery, rollback, and revocation.
+- Verification passed formatting, all workspace type checks, 35 API tests (23 passing and 12 intentional integration skips), and 3 worker-runtime tests. Terraform `fmt`/`validate` could not run because the Terraform binary is not installed in this local environment. AWS deployment and alert-route/provider/worker drills remain required before #39 can close.
