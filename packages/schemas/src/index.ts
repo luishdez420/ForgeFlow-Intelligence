@@ -132,6 +132,14 @@ export const reportItemSchema = z
     content: z.string().min(1),
     sources: z.array(sourceReferenceSchema),
     calculationId: z.uuid().optional(),
+    calculationProvenance: z
+      .object({
+        formulaVersion: z.string().min(1).max(100),
+        inputSnapshot: z.record(z.string(), z.unknown()),
+        status: z.enum(["CALCULATED", "UNAVAILABLE", "INVALID_INPUT"]),
+        calculatedAt: utcDateTimeSchema,
+      })
+      .optional(),
     agentRunId: z.uuid().optional(),
   })
   .superRefine((item, context) => {
@@ -152,6 +160,18 @@ export const reportDetailSchema = z.object({
   publishedAt: utcDateTimeSchema,
   items: z.array(reportItemSchema),
   validationFindings: z.array(validationFindingSchema),
+});
+
+export const workflowHistoryItemSchema = z.object({
+  id: workflowIdSchema,
+  ticker: tickerSchema,
+  state: workflowStateSchema,
+  createdAt: utcDateTimeSchema,
+  completedAt: utcDateTimeSchema.nullable(),
+});
+
+export const workflowHistorySchema = z.object({
+  workflows: z.array(workflowHistoryItemSchema),
 });
 
 export const apiErrorCodeSchema = z.enum([
@@ -185,6 +205,7 @@ export type SourceReference = z.infer<typeof sourceReferenceSchema>;
 export type ReportItemKind = z.infer<typeof reportItemKindSchema>;
 export type ReportItem = z.infer<typeof reportItemSchema>;
 export type ReportDetail = z.infer<typeof reportDetailSchema>;
+export type WorkflowHistory = z.infer<typeof workflowHistorySchema>;
 export type ApiError = z.infer<typeof apiErrorSchema>;
 export type PilotRole = z.infer<typeof pilotRoleSchema>;
 export type UserStatus = z.infer<typeof userStatusSchema>;

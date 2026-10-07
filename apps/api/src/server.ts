@@ -6,10 +6,12 @@ import {
   createCompanyAnalysisWorkflowResponseSchema,
   reportDetailSchema,
   workflowDetailSchema,
+  workflowHistorySchema,
 } from "@forgeflow/schemas";
 
 import {
   createCompanyAnalysisWorkflow,
+  getOwnedWorkflowHistory,
   getWorkflow,
   WorkflowNotFoundError,
 } from "./workflows.js";
@@ -114,6 +116,15 @@ const server = createServer(async (request, response) => {
             submittedByUserId: actor.id,
           }),
         ),
+      );
+      return;
+    }
+
+    if (request.method === "GET" && pathname === "/workflows") {
+      sendJson(
+        response,
+        200,
+        workflowHistorySchema.parse(await getOwnedWorkflowHistory(actor)),
       );
       return;
     }

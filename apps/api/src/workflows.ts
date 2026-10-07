@@ -2,6 +2,7 @@ import type {
   CreateCompanyAnalysisWorkflowRequest,
   CreateCompanyAnalysisWorkflowResponse,
   WorkflowDetail,
+  WorkflowHistory,
   WorkflowState,
 } from "@forgeflow/schemas";
 
@@ -239,6 +240,37 @@ export async function getWorkflow(
         createdAt: finding.created_at.toISOString(),
       })),
     );
+  });
+}
+
+/** Returns the current analyst's own recent analyses. It intentionally never
+ * expands an administrator's history into other analysts' submissions. */
+export async function getOwnedWorkflowHistory(
+  actor: AccessActor,
+): Promise<WorkflowHistory> {
+  return withTransaction(async (client) => {
+    const result = await client.query<
+      Pick<
+        WorkflowRow,
+        "id" | "ticker" | "state" | "created_at" | "completed_at"
+      >
+    >(
+      `SELECT id, ticker, state, created_at, completed_at
+       FROM forgeflow.workflow_runs
+       WHERE submitted_by_user_id = $1
+       ORDER BY created_at DESC
+       LIMIT 20`,
+      [actor.id],
+    );
+    return {
+      workflows: result.rows.map((workflow) => ({
+        id: workflow.id,
+        ticker: workflow.ticker,
+        state: workflow.state,
+        createdAt: workflow.created_at.toISOString(),
+        completedAt: workflow.completed_at?.toISOString() ?? null,
+      })),
+    };
   });
 }
 

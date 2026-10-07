@@ -187,3 +187,11 @@ This is an append-only record of delivery evidence, decisions, failures, and def
 - Added transactional report assembly from authoritative persisted facts and financial metrics. It preserves AI analysis, produces FACT/CALCULATION/UNAVAILABLE item types, maintains source links for facts, and respects validation gates.
 - The assembler is idempotent, including when rebuilding an existing published report with retained AI items; it resets the published timestamp correctly and allocates non-conflicting display positions.
 - Verification passed 11 API PostgreSQL integration tests, workspace type checks, 32 non-integration workspace tests, formatting, and diff checks.
+
+## 2026-10-07 — Issue #37 analyst workflow and evidence experience delivered locally
+
+- Added a same-origin, ownership-scoped analysis-history route. The history is deliberately limited to the signed-in analyst's own workflows, including for administrators, so the console never turns an operational convenience into cross-analyst browsing.
+- The console now polls active workflows every 2.5 seconds, identifies later attempts as recovered/retried, shows retry codes and next-attempt timestamps, and renders persisted data-quality findings with their severity and status.
+- Typed report filtering is keyboard-accessible and has an explicit empty state. Calculation report items now expose their persisted formula version, calculation status, timestamp, exact input snapshot, and linked source evidence. Source links include persisted document metadata when a source has a document record.
+- Verification passed repository formatting, all workspace type checks, 29 non-integration workspace tests, 11 PostgreSQL API integration tests (including report calculation provenance and source-link retrieval), the Impeccable UI detector, and `git diff --check`.
+- The issue remains open pending the meaningful manual acceptance gate: sign in as an allow-listed analyst, create/select an analysis, observe live polling and recovery presentation, filter a published report, inspect evidence links and calculation details, then repeat the console review at a narrow/mobile viewport with keyboard navigation. No live SEC, market-data, or OpenAI request is required for this UI acceptance.

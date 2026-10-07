@@ -117,8 +117,8 @@ describe.skipIf(!runIntegration)("source-grounded reports", () => {
     await pool.query(
       `INSERT INTO forgeflow.financial_metrics
        (company_id, metric_name, period_end, value, unit, formula_version, input_snapshot, calculation_status)
-       VALUES ($1, 'operating_margin', '2025-06-30', 25, 'PERCENT', 'v1', '{"source_ids":[]}', 'CALCULATED')`,
-      [companyId],
+       VALUES ($1, 'operating_margin', '2025-06-30', 25, 'PERCENT', 'v1', $2::jsonb, 'CALCULATED')`,
+      [companyId, JSON.stringify({ source_ids: [sourceId] })],
     );
     const reportId = await assemblePersistedReport(workflowId);
     expect(await assemblePersistedReport(workflowId)).toBe(reportId);
@@ -140,6 +140,23 @@ describe.skipIf(!runIntegration)("source-grounded reports", () => {
       ]),
     );
     expect(rows.rows.filter((row) => row.title === "revenue")).toHaveLength(1);
+    await pool.query(
+      "UPDATE forgeflow.reports SET state = 'PUBLISHED', published_at = now() WHERE id = $1",
+      [reportId],
+    );
+    const published = await getReport(workflowId);
+    expect(published.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: "CALCULATION",
+          calculationProvenance: expect.objectContaining({
+            formulaVersion: "v1",
+            inputSnapshot: { source_ids: [sourceId] },
+          }),
+          sources: [expect.objectContaining({ sourceId })],
+        }),
+      ]),
+    );
   });
 
   it("blocks publication when provenance validation has an error", async () => {

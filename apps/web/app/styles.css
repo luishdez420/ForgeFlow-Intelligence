@@ -108,6 +108,42 @@ button:disabled {
   margin: 1.5rem 0;
   color: #46554e;
 }
+.muted {
+  color: #59675f;
+  font-size: 0.9rem;
+  margin-top: 0.35rem;
+}
+.history {
+  margin-top: 2.5rem;
+}
+.history h2,
+.findings h3 {
+  font-size: 1rem;
+  letter-spacing: -0.01em;
+}
+.history ol,
+.findings ul {
+  list-style: none;
+  padding: 0;
+  margin: 0.75rem 0 0;
+}
+.history-item {
+  align-items: center;
+  background: #fafbf7;
+  color: #172126;
+  display: flex;
+  justify-content: space-between;
+  padding: 0.8rem;
+  text-align: left;
+  width: 100%;
+}
+.history-item > span:first-child {
+  display: grid;
+  gap: 0.15rem;
+}
+.history-item[aria-current="page"] {
+  outline: 2px solid #1f7461;
+}
 .workflow,
 .report {
   margin-top: 2.5rem;
@@ -148,6 +184,32 @@ button:disabled {
 .workflow small {
   color: #59675f;
 }
+.findings {
+  border-top: 1px solid #c3ccc4;
+  margin-top: 1rem;
+  padding-top: 1rem;
+}
+.findings li {
+  align-items: baseline;
+  display: flex;
+  gap: 0.65rem;
+  padding: 0.45rem 0;
+}
+.severity {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  min-width: 4.8rem;
+}
+.severity.error {
+  color: #8a2525;
+}
+.severity.warning {
+  color: #6a4b08;
+}
+.severity.info {
+  color: #1d6655;
+}
 .report {
   display: grid;
   gap: 1px;
@@ -156,6 +218,29 @@ button:disabled {
 .report > h2 {
   background: #edf0eb;
   padding: 0 0 0.75rem;
+}
+.report-heading {
+  background: #edf0eb;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: space-between;
+  padding: 0 0 0.75rem;
+}
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+.filters button {
+  background: #e1e7df;
+  color: #173b34;
+  font-size: 0.76rem;
+  padding: 0.45rem 0.55rem;
+}
+.filters button[aria-pressed="true"] {
+  background: #173b34;
+  color: #fff;
 }
 .report article {
   background: #fafbf7;
@@ -179,6 +264,31 @@ button:disabled {
   color: #1d6655;
   text-underline-offset: 0.2em;
   font-size: 0.85rem;
+}
+.report details {
+  border-left: 3px solid #c3ccc4;
+  margin-top: 1rem;
+  padding-left: 0.75rem;
+}
+.report summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+.report details p {
+  font-size: 0.9rem;
+}
+.report pre {
+  background: #edf0eb;
+  font-size: 0.78rem;
+  margin: 0.75rem 0 0;
+  overflow-x: auto;
+  padding: 0.75rem;
+}
+.empty {
+  background: #fafbf7;
+  color: #59675f;
+  margin: 0;
+  padding: 1.25rem;
 }
 .ai_analysis {
   background: #d8ddef;
@@ -209,6 +319,13 @@ button:disabled {
   }
   .workflow small {
     grid-column: 1/-1;
+  }
+  .report-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .filters button {
+    width: auto;
   }
   .entry {
     flex-direction: column;

@@ -84,13 +84,14 @@ export async function assemblePersistedReport(
       value: string | null;
       unit: string;
       calculation_status: string;
+      input_snapshot: Record<string, unknown>;
     }>(
-      "SELECT id, metric_name, value, unit, calculation_status FROM forgeflow.financial_metrics WHERE company_id = $1 ORDER BY calculated_at",
+      "SELECT id, metric_name, value, unit, calculation_status, input_snapshot FROM forgeflow.financial_metrics WHERE company_id = $1 ORDER BY calculated_at",
       [companyId],
     );
     for (const metric of metrics.rows) {
-      await client.query(
-        "INSERT INTO forgeflow.report_items (report_id, item_kind, section, title, content, display_order, financial_metric_id) VALUES ($1, $2, 'Calculations', $3, $4, $5, $6)",
+      const item = await client.query<{ id: string }>(
+        "INSERT INTO forgeflow.report_items (report_id, item_kind, section, title, content, display_order, financial_metric_id) VALUES ($1, $2, 'Calculations', $3, $4, $5, $6) RETURNING id",
         [
           reportId,
           metric.calculation_status === "CALCULATED"
@@ -104,6 +105,23 @@ export async function assemblePersistedReport(
           metric.id,
         ],
       );
+      const sourceIds = Array.isArray(metric.input_snapshot.source_ids)
+        ? metric.input_snapshot.source_ids.filter(
+            (sourceId): sourceId is string =>
+              typeof sourceId === "string" &&
+              /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+                sourceId,
+              ),
+          )
+        : [];
+      if (sourceIds.length > 0) {
+        await client.query(
+          `INSERT INTO forgeflow.report_item_sources (report_item_id, source_id)
+           SELECT $1, source_id FROM unnest($2::uuid[]) AS source_id
+           ON CONFLICT DO NOTHING`,
+          [item.rows[0]!.id, sourceIds],
+        );
+      }
     }
     return reportId;
   });
@@ -175,8 +193,18 @@ export async function getReport(
       title: string;
       content: string;
       financial_metric_id: string | null;
+      formula_version: string | null;
+      input_snapshot: Record<string, unknown> | null;
+      calculation_status: "CALCULATED" | "UNAVAILABLE" | "INVALID_INPUT" | null;
+      calculated_at: Date | null;
     }>(
-      "SELECT id, item_kind, section, title, content, financial_metric_id FROM forgeflow.report_items WHERE report_id = $1 ORDER BY display_order",
+      `SELECT item.id, item.item_kind, item.section, item.title, item.content,
+              item.financial_metric_id, metric.formula_version, metric.input_snapshot,
+              metric.calculation_status, metric.calculated_at
+       FROM forgeflow.report_items item
+       LEFT JOIN forgeflow.financial_metrics metric ON metric.id = item.financial_metric_id
+       WHERE item.report_id = $1
+       ORDER BY item.display_order`,
       [row.id],
     );
     const sources = await client.query<{
@@ -186,8 +214,24 @@ export async function getReport(
       provider: string;
       origin_url: string;
       retrieved_at: Date;
+      document_id: string | null;
+      document_section: string | null;
     }>(
-      "SELECT link.report_item_id, source.id, source.source_type, source.provider, source.origin_url, source.retrieved_at FROM forgeflow.report_item_sources link JOIN forgeflow.sources source ON source.id = link.source_id WHERE link.report_item_id IN (SELECT id FROM forgeflow.report_items WHERE report_id = $1)",
+      `SELECT link.report_item_id, source.id, source.source_type, source.provider,
+              source.origin_url, source.retrieved_at, document.id AS document_id,
+              concat_ws(' · ', document.document_type, document.external_identifier) AS document_section
+       FROM forgeflow.report_item_sources link
+       JOIN forgeflow.sources source ON source.id = link.source_id
+       LEFT JOIN LATERAL (
+         SELECT id, document_type, external_identifier
+         FROM forgeflow.documents
+         WHERE source_id = source.id
+         ORDER BY created_at DESC
+         LIMIT 1
+       ) document ON true
+       WHERE link.report_item_id IN (
+         SELECT id FROM forgeflow.report_items WHERE report_id = $1
+       )`,
       [row.id],
     );
     const findings = await client.query<{
@@ -225,9 +269,29 @@ export async function getReport(
             provider: source.provider,
             url: source.origin_url,
             retrievedAt: source.retrieved_at.toISOString(),
+            ...(source.document_id
+              ? {
+                  documentId: source.document_id,
+                  documentSection: source.document_section ?? "Source document",
+                }
+              : {}),
           })),
         ...(item.financial_metric_id
           ? { calculationId: item.financial_metric_id }
+          : {}),
+        ...(item.financial_metric_id &&
+        item.formula_version &&
+        item.input_snapshot &&
+        item.calculation_status &&
+        item.calculated_at
+          ? {
+              calculationProvenance: {
+                formulaVersion: item.formula_version,
+                inputSnapshot: item.input_snapshot,
+                status: item.calculation_status,
+                calculatedAt: item.calculated_at.toISOString(),
+              },
+            }
           : {}),
       })),
       validationFindings: findings.rows.map((finding) => ({
