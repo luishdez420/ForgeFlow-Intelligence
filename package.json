@@ -12,8 +12,8 @@
     "npm": ">=10.0.0"
   },
   "scripts": {
-    "dev:api": "npm run dev --workspace=@forgeflow/api",
-    "dev:web": "npm run dev --workspace=@forgeflow/web",
+    "dev:api": "set -a; [ -f .env ] && . ./.env; set +a; npm run dev --workspace=@forgeflow/api",
+    "dev:web": "set -a; [ -f .env ] && . ./.env; set +a; npm run dev --workspace=@forgeflow/web",
     "infra:up": "docker compose up -d",
     "infra:down": "docker compose down",
     "infra:logs": "docker compose logs --follow",

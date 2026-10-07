@@ -29,8 +29,21 @@ Prerequisites: Node.js 22+, Python 3.12+, and Docker Desktop.
 
 ```sh
 npm install
+cp .env.example .env
 npm run infra:up
 npm run dev:api
+```
+
+Populate the ignored `.env` file with local credentials before starting the
+web app. `npm run dev:web` and `npm run dev:api` load it automatically, so
+there is no need to re-export values in each new terminal. Keep `AUTH_SECRET`
+and `FORGEFLOW_INTERNAL_API_SECRET` stable locally: the web and API must share
+the latter, and changing the former invalidates active browser sessions.
+
+Start the analyst web app separately with:
+
+```sh
+npm run dev:web
 ```
 
 The local API health endpoint is `http://localhost:3001/health`. PostgreSQL

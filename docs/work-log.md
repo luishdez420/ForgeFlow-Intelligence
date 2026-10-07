@@ -195,3 +195,7 @@ This is an append-only record of delivery evidence, decisions, failures, and def
 - Typed report filtering is keyboard-accessible and has an explicit empty state. Calculation report items now expose their persisted formula version, calculation status, timestamp, exact input snapshot, and linked source evidence. Source links include persisted document metadata when a source has a document record.
 - Verification passed repository formatting, all workspace type checks, 29 non-integration workspace tests, 11 PostgreSQL API integration tests (including report calculation provenance and source-link retrieval), the Impeccable UI detector, and `git diff --check`.
 - The issue remains open pending the meaningful manual acceptance gate: sign in as an allow-listed analyst, create/select an analysis, observe live polling and recovery presentation, filter a published report, inspect evidence links and calculation details, then repeat the console review at a narrow/mobile viewport with keyboard navigation. No live SEC, market-data, or OpenAI request is required for this UI acceptance.
+
+## 2026-10-07 — Persistent local-development environment loading
+
+- `npm run dev:web` and `npm run dev:api` now load the ignored repository-root `.env` file before starting. This keeps local OAuth and internal API configuration out of Git while removing the need to re-export values for every terminal session.
