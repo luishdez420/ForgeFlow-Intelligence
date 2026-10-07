@@ -6,13 +6,13 @@ from dataclasses import dataclass
 from .runtime import ClaimedTask, TaskExecutionError
 from .sec_edgar import SecEdgarError, SecEdgarProvider
 from .sec_facts import extract_initial_facts
-from .sec_taxonomy import map_sec_facts
 
 
 class AnalysisRepository:
     def workflow_company(self, workflow_id: str) -> tuple[str, str]: ...
     def persist_sec_evidence(self, company_id: str, documents, company_facts, extracted_facts) -> dict[str, int]: ...
     def persist_canonical_sec_facts(self, company_id: str, source_id: str, document_id: str, facts) -> int: ...
+    def normalize_sec_financial_facts(self, company_id: str) -> int: ...
     def record_market_data_unavailable(self, company_id: str) -> None: ...
     def validate_workflow_sources(self, workflow_id: str): ...
     def assemble_report(self, workflow_id: str) -> str: ...
@@ -30,7 +30,7 @@ class CompanyAnalysisHandlers:
             "FETCH_SEC_FILINGS": self.fetch_sec_filings,
             "FETCH_MARKET_HISTORY": self.fetch_market_history,
             "NORMALIZE_COMPANY_DATA": self.noop,
-            "NORMALIZE_FINANCIAL_DATA": self.noop,
+            "NORMALIZE_FINANCIAL_DATA": self.normalize_financial_data,
             "CALCULATE_FINANCIAL_METRICS": self.noop,
             "CALCULATE_MARKET_METRICS": self.noop,
             "VALIDATE_SOURCES": self.validate_sources,
@@ -60,6 +60,10 @@ class CompanyAnalysisHandlers:
 
     def validate_sources(self, task: ClaimedTask) -> None:
         self.repository.validate_workflow_sources(task.workflow_id)
+
+    def normalize_financial_data(self, task: ClaimedTask) -> None:
+        company_id, _ = self.repository.workflow_company(task.workflow_id)
+        self.repository.normalize_sec_financial_facts(company_id)
 
     def assemble_report(self, task: ClaimedTask) -> None:
         try:

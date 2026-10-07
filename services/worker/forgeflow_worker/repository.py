@@ -14,7 +14,7 @@ from psycopg.types.json import Jsonb
 from .runtime import ClaimedTask
 from .sec_edgar import SecCompanyFacts, SecDocument
 from .sec_facts import ExtractedSecFact
-from .sec_taxonomy import CanonicalFact
+from .sec_taxonomy import CanonicalFact, map_sec_facts
 from .validation import ValidationFinding, validate_workflow_inputs
 
 DEFAULT_DATABASE_URL = "postgresql://forgeflow:forgeflow@localhost:15432/forgeflow"
@@ -143,7 +143,9 @@ class PostgresWorkerRepository:
             order = int(cursor.fetchone()["next_order"])
             cursor.execute("""
                 SELECT id, source_id, field_name, raw_value, normalized_value, normalization_status
-                FROM forgeflow.facts WHERE company_id = %s ORDER BY created_at, id
+                FROM forgeflow.facts
+                WHERE company_id = %s AND field_name NOT LIKE 'us-gaap:%%'
+                ORDER BY created_at, id
             """, (company_id,))
             for fact in cursor.fetchall():
                 item_kind = "FACT" if fact["normalized_value"] is not None or fact["normalization_status"] == "NORMALIZED" else "UNAVAILABLE"
@@ -421,6 +423,33 @@ class PostgresWorkerRepository:
                      company_id, source_id, document_id, fact.name, Jsonb(raw_value)),
                 )
                 inserted += cursor.rowcount
+        return inserted
+
+    def normalize_sec_financial_facts(self, company_id: str) -> int:
+        """Map raw SEC XBRL observations while retaining each source record."""
+        with self._connection() as connection, connection.cursor() as cursor:
+            cursor.execute("""
+                SELECT source_id, document_id, field_name, raw_value, observed_at, normalization_status
+                FROM forgeflow.facts
+                WHERE company_id = %s AND field_name LIKE 'us-gaap:%%'
+            """, (company_id,))
+            rows = cursor.fetchall()
+        raw_facts: list[ExtractedSecFact] = []
+        evidence: dict[tuple[str, str, str | None], tuple[str, str]] = {}
+        for row in rows:
+            if not isinstance(row["raw_value"], dict) or row["document_id"] is None:
+                continue
+            observed_at = row["observed_at"].isoformat() if row["observed_at"] else None
+            raw_value = row["raw_value"]
+            raw_facts.append(ExtractedSecFact(row["field_name"], raw_value, observed_at, row["normalization_status"]))
+            evidence[(row["field_name"], json.dumps(raw_value, sort_keys=True), observed_at)] = (str(row["source_id"]), str(row["document_id"]))
+        inserted = 0
+        for fact in map_sec_facts(raw_facts):
+            source_document = evidence.get((fact.sec_concept, json.dumps(fact.raw_value, sort_keys=True), fact.period_end))
+            if source_document is None:
+                continue
+            source_id, document_id = source_document
+            inserted += self.persist_canonical_sec_facts(company_id, source_id, document_id, [fact])
         return inserted
 
     @staticmethod

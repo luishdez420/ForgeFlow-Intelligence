@@ -31,10 +31,10 @@ def test_assembles_and_publishes_a_typed_evidence_report_idempotently() -> None:
         """, (company_id, f"https://example.test/{ticker}", datetime.now(), uuid4().hex))
         source_id = str(cursor.fetchone()["id"])
         cursor.execute("""
-            INSERT INTO forgeflow.facts (company_id, source_id, field_name, raw_value, normalization_status)
-            VALUES (%s, %s, 'us-gaap:Revenues', %s::jsonb, 'NORMALIZED'),
-                   (%s, %s, 'market_history', %s::jsonb, 'UNAVAILABLE')
-        """, (company_id, source_id, Jsonb({"val": 100, "unit": "USD"}), company_id, source_id, Jsonb({"reason": "NO_APPROVED_VENDOR"})))
+            INSERT INTO forgeflow.facts (company_id, source_id, field_name, raw_value, normalized_value, normalization_status)
+            VALUES (%s, %s, 'revenue', %s::jsonb, %s::jsonb, 'NORMALIZED'),
+                   (%s, %s, 'market_history', %s::jsonb, NULL, 'UNAVAILABLE')
+        """, (company_id, source_id, Jsonb({"val": 100, "unit": "USD"}), Jsonb({"value": 100, "unit": "USD"}), company_id, source_id, Jsonb({"reason": "NO_APPROVED_VENDOR"})))
     try:
         first = repository.assemble_report(workflow_id)
         assert repository.assemble_report(workflow_id) == first
@@ -45,7 +45,7 @@ def test_assembles_and_publishes_a_typed_evidence_report_idempotently() -> None:
             cursor.execute("SELECT item_kind, title FROM forgeflow.report_items WHERE report_id = %s ORDER BY title", (first,))
             assert cursor.fetchall() == [
                 {"item_kind": "UNAVAILABLE", "title": "market_history"},
-                {"item_kind": "FACT", "title": "us-gaap:Revenues"},
+                {"item_kind": "FACT", "title": "revenue"},
             ]
             cursor.execute("SELECT count(*) AS count FROM forgeflow.report_item_sources WHERE report_item_id IN (SELECT id FROM forgeflow.report_items WHERE report_id = %s)", (first,))
             assert cursor.fetchone()["count"] == 1

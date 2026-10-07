@@ -67,6 +67,19 @@ function formatDate(value: string): string {
   }).format(new Date(value));
 }
 
+function formatReportTitle(title: string): string {
+  const labels: Record<string, string> = {
+    revenue: "Revenue",
+    operating_income: "Operating income",
+    net_income: "Net income",
+    assets: "Total assets",
+    operating_cash_flow: "Operating cash flow",
+    share_count: "Shares outstanding",
+    market_history: "Market data",
+  };
+  return labels[title] ?? title.replaceAll("_", " ");
+}
+
 export function AnalystConsole({ analystEmail }: { analystEmail: string }) {
   const [ticker, setTicker] = useState("");
   const [workflow, setWorkflow] = useState<Workflow | null>(null);
@@ -331,7 +344,7 @@ export function AnalystConsole({ analystEmail }: { analystEmail: string }) {
               <span className={`kind ${item.kind.toLowerCase()}`}>
                 {item.kind.replace("_", " ")}
               </span>
-              <h3>{item.title}</h3>
+              <h3>{formatReportTitle(item.title)}</h3>
               <p>{item.content}</p>
               {item.calculationProvenance && (
                 <details>
