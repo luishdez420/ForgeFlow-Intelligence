@@ -199,3 +199,8 @@ This is an append-only record of delivery evidence, decisions, failures, and def
 ## 2026-10-07 — Persistent local-development environment loading
 
 - `npm run dev:web` and `npm run dev:api` now load the ignored repository-root `.env` file before starting. This keeps local OAuth and internal API configuration out of Git while removing the need to re-export values for every terminal session.
+
+## 2026-10-07 — CI worker test dependency repair
+
+- The Python worker CI job now installs the local financial-engine package before collecting worker tests. The worker metric-persistence integration test imports deterministic metric functions from that package, and the former isolated install caused `ModuleNotFoundError` during GitHub Actions test collection.
+- Local verification passed 25 worker tests with 3 opt-in integration tests skipped, repository formatting, and diff checks.
