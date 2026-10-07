@@ -3,11 +3,13 @@ from forgeflow_worker.runtime import ClaimedTask
 
 
 class Repository:
-    def __init__(self) -> None: self.unavailable = []; self.persisted = []; self.validated = []
+    def __init__(self) -> None: self.unavailable = []; self.persisted = []; self.validated = []; self.assembled = []; self.published = []
     def workflow_company(self, _: str): return "company", "MSFT"
     def record_market_data_unavailable(self, company_id: str) -> None: self.unavailable.append(company_id)
     def persist_sec_evidence(self, *values) -> None: self.persisted.append(values)
     def validate_workflow_sources(self, workflow_id: str) -> None: self.validated.append(workflow_id)
+    def assemble_report(self, workflow_id: str) -> str: self.assembled.append(workflow_id); return "report"
+    def publish_report(self, workflow_id: str) -> None: self.published.append(workflow_id)
 
 
 class Sec:
@@ -30,6 +32,16 @@ def test_runs_source_validation_through_the_durable_repository() -> None:
     handlers = CompanyAnalysisHandlers(repository, Sec()).handlers()
     handlers["VALIDATE_SOURCES"](ClaimedTask("task", "workflow", "VALIDATE_SOURCES", "attempt", 1, "lease", "future"))
     assert repository.validated == ["workflow"]
+
+
+def test_assembles_and_publishes_reports_through_the_durable_repository() -> None:
+    repository = Repository()
+    handlers = CompanyAnalysisHandlers(repository, Sec()).handlers()
+    task = ClaimedTask("task", "workflow", "ASSEMBLE_REPORT", "attempt", 1, "lease", "future")
+    handlers["ASSEMBLE_REPORT"](task)
+    handlers["PUBLISH_REPORT"](task)
+    assert repository.assembled == ["workflow"]
+    assert repository.published == ["workflow"]
 
 
 def test_fetches_sec_evidence_through_durable_repository(monkeypatch) -> None:

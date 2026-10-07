@@ -120,6 +120,92 @@ class PostgresWorkerRepository:
                 )
         return findings
 
+    def assemble_report(self, workflow_id: str) -> str:
+        """Build an idempotent typed report from persisted evidence only."""
+        with self._connection() as connection, connection.cursor() as cursor:
+            cursor.execute("SELECT company_id FROM forgeflow.workflow_runs WHERE id = %s FOR UPDATE", (workflow_id,))
+            workflow = cursor.fetchone()
+            if workflow is None or workflow["company_id"] is None:
+                raise ValueError("Workflow has no company.")
+            company_id = str(workflow["company_id"])
+            cursor.execute("SELECT count(*) AS count FROM forgeflow.workflow_validation_findings WHERE workflow_run_id = %s AND severity = 'ERROR'", (workflow_id,))
+            if int(cursor.fetchone()["count"]) > 0:
+                raise ValueError("Report publication is blocked by invalid source validation findings.")
+            cursor.execute("""
+                INSERT INTO forgeflow.reports (workflow_run_id, company_id, state)
+                VALUES (%s, %s, 'DRAFT')
+                ON CONFLICT (workflow_run_id) DO UPDATE SET state = 'DRAFT', published_at = NULL
+                RETURNING id
+            """, (workflow_id, company_id))
+            report_id = str(cursor.fetchone()["id"])
+            cursor.execute("DELETE FROM forgeflow.report_items WHERE report_id = %s AND item_kind <> 'AI_ANALYSIS'", (report_id,))
+            cursor.execute("SELECT COALESCE(MAX(display_order), -1) + 1 AS next_order FROM forgeflow.report_items WHERE report_id = %s", (report_id,))
+            order = int(cursor.fetchone()["next_order"])
+            cursor.execute("""
+                SELECT id, source_id, field_name, raw_value, normalized_value, normalization_status
+                FROM forgeflow.facts WHERE company_id = %s ORDER BY created_at, id
+            """, (company_id,))
+            for fact in cursor.fetchall():
+                item_kind = "FACT" if fact["normalized_value"] is not None or fact["normalization_status"] == "NORMALIZED" else "UNAVAILABLE"
+                value = fact["normalized_value"] or fact["raw_value"]
+                content = self._report_content(value)
+                cursor.execute("""
+                    INSERT INTO forgeflow.report_items (report_id, item_kind, section, title, content, display_order)
+                    VALUES (%s, %s, 'Evidence', %s, %s, %s) RETURNING id
+                """, (report_id, item_kind, fact["field_name"], content, order))
+                item_id = str(cursor.fetchone()["id"])
+                order += 1
+                if item_kind != "UNAVAILABLE":
+                    cursor.execute("""
+                        INSERT INTO forgeflow.report_item_sources (report_item_id, source_id)
+                        VALUES (%s, %s) ON CONFLICT DO NOTHING
+                    """, (item_id, fact["source_id"]))
+            cursor.execute("""
+                SELECT id, metric_name, value, unit, calculation_status, input_snapshot
+                FROM forgeflow.financial_metrics WHERE company_id = %s ORDER BY calculated_at, id
+            """, (company_id,))
+            for metric in cursor.fetchall():
+                snapshot = metric["input_snapshot"] if isinstance(metric["input_snapshot"], dict) else {}
+                source_ids = [source_id for source_id in snapshot.get("source_ids", []) if isinstance(source_id, str)]
+                item_kind = "CALCULATION" if metric["calculation_status"] == "CALCULATED" and source_ids else "UNAVAILABLE"
+                content = f"{metric['value']} {metric['unit']}" if metric["value"] is not None else str(metric["calculation_status"])
+                cursor.execute("""
+                    INSERT INTO forgeflow.report_items (report_id, item_kind, section, title, content, display_order, financial_metric_id)
+                    VALUES (%s, %s, 'Calculations', %s, %s, %s, %s) RETURNING id
+                """, (report_id, item_kind, metric["metric_name"], content, order, metric["id"]))
+                item_id = str(cursor.fetchone()["id"])
+                order += 1
+                if item_kind == "CALCULATION":
+                    for source_id in set(source_ids):
+                        cursor.execute("""
+                            INSERT INTO forgeflow.report_item_sources (report_item_id, source_id)
+                            SELECT %s, id FROM forgeflow.sources WHERE id = %s::uuid
+                            ON CONFLICT DO NOTHING
+                        """, (item_id, source_id))
+            return report_id
+
+    def publish_report(self, workflow_id: str) -> None:
+        with self._connection() as connection, connection.cursor() as cursor:
+            cursor.execute("""
+                UPDATE forgeflow.reports SET state = 'PUBLISHED', published_at = now()
+                WHERE workflow_run_id = %s AND state = 'DRAFT'
+            """, (workflow_id,))
+            if cursor.rowcount != 1:
+                raise ValueError("A draft report must be assembled before publication.")
+
+    @staticmethod
+    def _report_content(value: object) -> str:
+        if isinstance(value, dict):
+            if value.get("reason"):
+                return str(value["reason"])
+            if value.get("val") is not None:
+                suffix = f" {value['unit']}" if value.get("unit") else ""
+                return f"{value['val']}{suffix}"
+            if value.get("value") is not None:
+                suffix = f" {value['unit']}" if value.get("unit") else ""
+                return f"{value['value']}{suffix}"
+        return json.dumps(value, sort_keys=True, default=str)
+
     def set_status(self, worker_id: str, status: str) -> None:
         with self._connection() as connection, connection.cursor() as cursor:
             cursor.execute(

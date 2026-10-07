@@ -15,6 +15,8 @@ class AnalysisRepository:
     def persist_canonical_sec_facts(self, company_id: str, source_id: str, document_id: str, facts) -> int: ...
     def record_market_data_unavailable(self, company_id: str) -> None: ...
     def validate_workflow_sources(self, workflow_id: str): ...
+    def assemble_report(self, workflow_id: str) -> str: ...
+    def publish_report(self, workflow_id: str) -> None: ...
 
 
 @dataclass
@@ -33,8 +35,8 @@ class CompanyAnalysisHandlers:
             "CALCULATE_MARKET_METRICS": self.noop,
             "VALIDATE_SOURCES": self.validate_sources,
             "GENERATE_ANALYSIS": self.noop,
-            "ASSEMBLE_REPORT": self.noop,
-            "PUBLISH_REPORT": self.noop,
+            "ASSEMBLE_REPORT": self.assemble_report,
+            "PUBLISH_REPORT": self.publish_report,
         }
 
     def fetch_company_profile(self, task: ClaimedTask) -> None:
@@ -58,5 +60,17 @@ class CompanyAnalysisHandlers:
 
     def validate_sources(self, task: ClaimedTask) -> None:
         self.repository.validate_workflow_sources(task.workflow_id)
+
+    def assemble_report(self, task: ClaimedTask) -> None:
+        try:
+            self.repository.assemble_report(task.workflow_id)
+        except ValueError as error:
+            raise TaskExecutionError("VALIDATION", "REPORT_ASSEMBLY", str(error)) from error
+
+    def publish_report(self, task: ClaimedTask) -> None:
+        try:
+            self.repository.publish_report(task.workflow_id)
+        except ValueError as error:
+            raise TaskExecutionError("VALIDATION", "REPORT_PUBLICATION", str(error)) from error
 
     def noop(self, _: ClaimedTask) -> None: pass

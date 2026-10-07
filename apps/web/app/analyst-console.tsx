@@ -287,8 +287,8 @@ export function AnalystConsole({ analystEmail }: { analystEmail: string }) {
             <section className="findings" aria-labelledby="findings-title">
               <h3 id="findings-title">Data-quality findings</h3>
               <ul>
-                {workflow.validationFindings.map((finding) => (
-                  <li key={`${finding.code}-${finding.message}`}>
+                {workflow.validationFindings.map((finding, index) => (
+                  <li key={`${finding.code}-${finding.message}-${index}`}>
                     <span
                       className={`severity ${finding.severity.toLowerCase()}`}
                     >

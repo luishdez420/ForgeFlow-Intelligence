@@ -204,3 +204,9 @@ This is an append-only record of delivery evidence, decisions, failures, and def
 
 - The Python worker CI job now installs the local financial-engine package before collecting worker tests. The worker metric-persistence integration test imports deterministic metric functions from that package, and the former isolated install caused `ModuleNotFoundError` during GitHub Actions test collection.
 - Local verification passed 25 worker tests with 3 opt-in integration tests skipped, repository formatting, and diff checks.
+
+## 2026-10-07 — Local workflow report-publication repair
+
+- Corrected a real worker-handler gap found during the signed-in local workflow walkthrough: `ASSEMBLE_REPORT` and `PUBLISH_REPORT` had been no-ops, allowing a workflow to reach `SUCCEEDED` without creating a report.
+- The worker now idempotently assembles typed FACT/UNAVAILABLE/CALCULATION report items from persisted evidence, links non-unavailable items to their sources, blocks assembly on ERROR validation findings, and publishes the assembled report before completing the workflow. The console's validation-list key now includes its position so repeated warning text is rendered safely.
+- Verification passed 26 worker unit tests (4 opt-in integration tests skipped), all 30 worker tests with local PostgreSQL enabled, repository formatting, workspace type checks, 29 non-integration TypeScript tests, and diff checks. Existing succeeded workflows are immutable historical records; submit a new analysis after updating the worker to exercise report publication.
