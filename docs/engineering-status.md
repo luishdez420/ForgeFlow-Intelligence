@@ -9,6 +9,7 @@ ForgeFlow is an internal analyst-team MVP for durable, source-grounded company a
 ## Completed and closed
 
 - #1–#9: architecture, ADRs, monorepo/tooling, Compose, shared contracts, initial schema, persisted workflow creation, DAG resolution, and atomic task claiming. Delivered in `0e2917e` and closed with verification evidence.
+- #22: staging pilot infrastructure was applied from reviewed remote Terraform state. The private VPC/subnets, RDS PostgreSQL, Redis, ECS cluster, ECR repositories, CloudWatch logs/alarms, IAM task-execution role, and Secrets Manager placeholders are operational. AWS verification confirms RDS is encrypted and non-public, private subnets do not assign public IPs, Redis/database ingress is limited to the application security group, and S3 state/DynamoDB locking are present. Ready for GitHub closure.
 - #10: worker runtime, registration, heartbeats, capability advertisement, draining, graceful shutdown, and PostgreSQL task claims. Delivered in `e13658e` and closed with automated and local smoke-test evidence.
 - #11: persisted retry policy, failure classification, stale-lease safety, and expired-lease recovery. Delivered in `b2d33d3` and closed with unit and PostgreSQL integration evidence.
 - #12: failure-injection coverage for crash-after-claim, duplicate delivery, retry timing, DAG propagation, and recovery. Delivered in `08e8d0d` and closed with Compose-backed integration evidence.
@@ -17,7 +18,6 @@ ForgeFlow is an internal analyst-team MVP for durable, source-grounded company a
 
 ## In delivery
 
-- #22: Terraform foundation for isolated staging and production pilot environments is implemented. The encrypted/versioned S3 backend, DynamoDB lock table, and staging foundation have been applied. RDS creation is pending a free-plan-compatible retry with one-day retention, an available `db.t3.micro` instance, explicit `gp3` storage, 20 GiB staging storage, and an RDS-valid hexadecimal master password; production retains its larger configuration and seven-day minimum retention.
 - #23: local release artifacts are implemented: API/web/worker Docker images, immutable revision labels, migration compatibility guard, ECS task-definition templates, and a manual-only release workflow. The implementation is pushed; no image was pushed, release workflow was dispatched, AWS deployment was attempted, or GitHub issue was updated.
 - #24: local database lifecycle controls are implemented: configurable RDS backup/maintenance windows, snapshot tags, a constrained runtime role bootstrap, and a recovery runbook. AWS backup restoration and production-role verification remain external tests.
 - #25: Auth.js Google sign-in is configured locally with verified Workspace-domain enforcement and a server-side protected analyst route. The browser acceptance suite now verifies that an unauthenticated visitor is redirected to the fail-closed sign-in screen. OAuth credentials and a real Google callback test remain external setup work.
@@ -53,6 +53,8 @@ ForgeFlow is an internal analyst-team MVP for durable, source-grounded company a
 - #23 cannot close until an operator chooses a paid AWS environment, configures the documented GitHub environment variables/OIDC role/ECS services, and completes a staging deployment, failed-migration, and rollback drill. GitHub Actions work is intentionally paused until the account's minutes reset.
 - #24 cannot close until an authorized operator applies the RDS controls and performs the documented staged point-in-time restore drill against AWS.
 - #25 cannot close until a Google Cloud OAuth client, `AUTH_SECRET`, and an approved Workspace domain are configured in a non-local environment and the sign-in/callback/session-expiry browser tests run.
+- Redis at-rest encryption is not enabled in the deployed cache. Redis is private, token-protected, and encrypted in transit; enabling at-rest encryption requires a planned cache replacement and should be tracked as a pilot hardening follow-up before sensitive coordination payloads are permitted.
+- Terraform currently uses the still-working DynamoDB lock-table backend option, which Terraform reports as deprecated. Migrate deliberately to S3 native lockfiles after documenting state-lock compatibility; do not remove the existing table during active infrastructure work.
 
 ## Next planned issue
 
