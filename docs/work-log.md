@@ -24,6 +24,11 @@ This is an append-only record of delivery evidence, decisions, failures, and def
 - Added a rollback-aware deployment script that creates missing private ECS services on first release, registers digest-pinned task definitions, uses Service Connect for the API, restores prior task definitions on a later rollout failure, and scales a first-release partial service back to zero if bootstrapping fails.
 - The operator runbook documents the secret contract, OIDC boundary, GitHub environment variables, and controlled staging migration/rollback drills. No AWS task, secret value, GitHub environment, or image has been created by this implementation step.
 
+## 2026-10-08 — Issue #23 private-bootstrap release alignment
+
+- Made public-origin and Workspace-domain values optional only for the first private ECS bootstrap; analyst access still requires both.
+- Corrected the ECS Service Connect shorthand used to create the internal API service before its first AWS deployment.
+
 ## 2026-09-26 — Planning and foundation
 
 - Created the ForgeFlow MVP milestone, eight epics-as-labels, and dependency-ordered GitHub issues #1–#20.

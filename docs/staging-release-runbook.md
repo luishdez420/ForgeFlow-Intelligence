@@ -4,7 +4,7 @@ Issue #23 uses GitHub Actions OIDC to build immutable ECR images, run the
 migration task, and deploy private Fargate services. It intentionally does not
 use a developer's AWS access keys in CI.
 
-## Preconditions
+## Private-bootstrap preconditions
 
 1. Apply the current Terraform plan. It adds the ECS task role, execution-role
    permission to read only ForgeFlow runtime secrets, a private service
@@ -19,6 +19,13 @@ use a developer's AWS access keys in CI.
    roles.
 4. Create the GitHub `staging` environment, restrict who can dispatch it, and
    configure the repository environment variables below.
+
+The first private deployment does **not** require a public DNS name, TLS
+certificate, or Google Workspace domain. The web task starts with
+`http://localhost:3000` as a placeholder origin and an empty Workspace-domain
+restriction. Its health endpoint can be checked inside ECS, but analyst
+sign-in must remain disabled until the public ingress and identity work are
+complete.
 
 ## Runtime-secret contract
 
@@ -37,23 +44,23 @@ only for ECS tasks inside the VPC.
 
 Configure these as GitHub **environment variables**, not repository files:
 
-| Variable                          | Source                                                |
-| --------------------------------- | ----------------------------------------------------- |
-| `AWS_REGION`                      | `us-east-1`                                           |
-| `AWS_DEPLOY_ROLE_ARN`             | Staging-only GitHub OIDC deployment role              |
-| `ECS_CLUSTER`                     | Terraform `ecs_cluster_name` output                   |
-| `ECS_SUBNETS`                     | Terraform `ecs_private_subnet_ids`, comma-separated   |
-| `ECS_SECURITY_GROUP`              | Terraform `ecs_application_security_group_id` output  |
-| `ECS_TASK_EXECUTION_ROLE_ARN`     | Terraform output of the same name                     |
-| `ECS_TASK_ROLE_ARN`               | Terraform output of the same name                     |
-| `SERVICE_DISCOVERY_NAMESPACE_ARN` | Terraform output of the same name                     |
-| `DATABASE_SECRET_ARN`             | `runtime_secret_arns.database`                        |
-| `INTERNAL_API_SECRET_ARN`         | `runtime_secret_arns["internal-api"]`                 |
-| `WEB_AUTH_SECRET_ARN`             | `runtime_secret_arns["web-auth"]`                     |
-| `GOOGLE_OAUTH_SECRET_ARN`         | `runtime_secret_arns["google-oauth"]`                 |
-| `WEB_APP_ORIGIN`                  | The staging HTTPS origin after DNS/TLS is configured  |
-| `GOOGLE_WORKSPACE_DOMAIN`         | Approved analyst Workspace domain                     |
-| `NEXT_PUBLIC_API_URL`             | Staging public API origin after DNS/TLS is configured |
+| Variable                          | Source                                                                        |
+| --------------------------------- | ----------------------------------------------------------------------------- |
+| `AWS_REGION`                      | `us-east-1`                                                                   |
+| `AWS_DEPLOY_ROLE_ARN`             | Staging-only GitHub OIDC deployment role                                      |
+| `ECS_CLUSTER`                     | Terraform `ecs_cluster_name` output                                           |
+| `ECS_SUBNETS`                     | Terraform `ecs_private_subnet_ids`, comma-separated                           |
+| `ECS_SECURITY_GROUP`              | Terraform `ecs_application_security_group_id` output                          |
+| `ECS_TASK_EXECUTION_ROLE_ARN`     | Terraform output of the same name                                             |
+| `ECS_TASK_ROLE_ARN`               | Terraform output of the same name                                             |
+| `SERVICE_DISCOVERY_NAMESPACE_ARN` | Terraform output of the same name                                             |
+| `DATABASE_SECRET_ARN`             | `runtime_secret_arns.database`                                                |
+| `INTERNAL_API_SECRET_ARN`         | `runtime_secret_arns["internal-api"]`                                         |
+| `WEB_AUTH_SECRET_ARN`             | `runtime_secret_arns["web-auth"]`                                             |
+| `GOOGLE_OAUTH_SECRET_ARN`         | `runtime_secret_arns["google-oauth"]`                                         |
+| `WEB_APP_ORIGIN`                  | Optional for private bootstrap; required HTTPS origin before analyst sign-in  |
+| `GOOGLE_WORKSPACE_DOMAIN`         | Optional for private bootstrap; required before analyst sign-in               |
+| `NEXT_PUBLIC_API_URL`             | Optional for private bootstrap; required public API origin for browser access |
 
 ## Release and verification
 

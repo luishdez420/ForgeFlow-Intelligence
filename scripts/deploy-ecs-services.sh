@@ -5,9 +5,15 @@ required=(
   AWS_REGION TARGET_ENV ECS_CLUSTER ECS_SUBNETS ECS_SECURITY_GROUP
   ECS_TASK_EXECUTION_ROLE_ARN ECS_TASK_ROLE_ARN DATABASE_SECRET_ARN
   INTERNAL_API_SECRET_ARN WEB_AUTH_SECRET_ARN GOOGLE_OAUTH_SECRET_ARN
-  WEB_APP_ORIGIN GOOGLE_WORKSPACE_DOMAIN SERVICE_DISCOVERY_NAMESPACE_ARN
+  SERVICE_DISCOVERY_NAMESPACE_ARN
   API_IMAGE_URI WEB_IMAGE_URI WORKER_IMAGE_URI
 )
+
+# A private bootstrap has neither public HTTPS ingress nor a Workspace domain.
+# These defaults let the web container start and pass its local health check.
+# Replace them before enabling analyst sign-in.
+: "${WEB_APP_ORIGIN:=http://localhost:3000}"
+: "${GOOGLE_WORKSPACE_DOMAIN:=}"
 
 for name in "${required[@]}"; do
   test -n "${!name:-}" || { echo "Missing required environment variable: $name" >&2; exit 1; }
@@ -71,7 +77,7 @@ for service in api web worker; do
       --desired-count 1 \
       --health-check-grace-period-seconds 90 \
       --network-configuration "awsvpcConfiguration={subnets=[$ECS_SUBNETS],securityGroups=[$ECS_SECURITY_GROUP],assignPublicIp=DISABLED}" \
-      --service-connect-configuration "enabled=true,namespace=$SERVICE_DISCOVERY_NAMESPACE_ARN,services=[{portName=api,discoveryName=api,clientAliases=[{port=3001,dnsName=api]}]" \
+      --service-connect-configuration "enabled=true,namespace=$SERVICE_DISCOVERY_NAMESPACE_ARN,services=[{portName=api,discoveryName=api,clientAliases=[{port=3001,dnsName=api}]}]" \
       >/dev/null
     created_services[$service]=true
   else

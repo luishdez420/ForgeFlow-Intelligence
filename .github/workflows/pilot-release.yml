@@ -58,13 +58,10 @@ jobs:
         run: |
           test -n "$AWS_REGION"
           test -n "$AWS_DEPLOY_ROLE_ARN"
-          test -n "$NEXT_PUBLIC_API_URL"
           test -n "$DATABASE_SECRET_ARN"
           test -n "$INTERNAL_API_SECRET_ARN"
           test -n "$WEB_AUTH_SECRET_ARN"
           test -n "$GOOGLE_OAUTH_SECRET_ARN"
-          test -n "$WEB_APP_ORIGIN"
-          test -n "$GOOGLE_WORKSPACE_DOMAIN"
           test -n "$ECS_CLUSTER"
           test -n "$ECS_SUBNETS"
           test -n "$ECS_SECURITY_GROUP"
