@@ -15,6 +15,7 @@ This is an append-only record of delivery evidence, decisions, failures, and def
 - The final staging RDS apply succeeded using `db.t3.micro`, `gp3` storage, 20 GiB allocation, and one-day retention. Terraform then created the RDS capacity alarm; no resource was changed or destroyed in the final apply.
 - Read-only AWS verification confirmed the database is available, storage-encrypted, and non-public; both private subnets disable public-IP assignment; database and Redis ingress comes only from the application security group; the Redis replication group is available with token authentication and transit encryption; ECS, immutable scanning ECR repositories, service log groups, the remote state object, and the `LockID` DynamoDB table are present.
 - Redis at-rest encryption is currently disabled. This does not change the verified #22 private-network acceptance result, but enabling it requires a replacement cache and is explicitly recorded as a pilot hardening follow-up. Terraform's DynamoDB-lock warning is also deferred for a deliberate S3-native-lockfile migration rather than an in-place state-lock change.
+- Issue #22 was closed on GitHub with the applied staging and verification evidence. The next active delivery target is #23: build/publish immutable images, run a migration task, deploy ECS revisions, and demonstrate rollback behavior.
 
 ## 2026-09-26 — Planning and foundation
 

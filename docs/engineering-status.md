@@ -1,6 +1,6 @@
 # Engineering status
 
-Last updated: 2026-10-07
+Last updated: 2026-10-08
 
 ## Product state
 
@@ -9,7 +9,7 @@ ForgeFlow is an internal analyst-team MVP for durable, source-grounded company a
 ## Completed and closed
 
 - #1–#9: architecture, ADRs, monorepo/tooling, Compose, shared contracts, initial schema, persisted workflow creation, DAG resolution, and atomic task claiming. Delivered in `0e2917e` and closed with verification evidence.
-- #22: staging pilot infrastructure was applied from reviewed remote Terraform state. The private VPC/subnets, RDS PostgreSQL, Redis, ECS cluster, ECR repositories, CloudWatch logs/alarms, IAM task-execution role, and Secrets Manager placeholders are operational. AWS verification confirms RDS is encrypted and non-public, private subnets do not assign public IPs, Redis/database ingress is limited to the application security group, and S3 state/DynamoDB locking are present. Ready for GitHub closure.
+- #22: closed. Staging pilot infrastructure was applied from reviewed remote Terraform state. The private VPC/subnets, RDS PostgreSQL, Redis, ECS cluster, ECR repositories, CloudWatch logs/alarms, IAM task-execution role, and Secrets Manager placeholders are operational. AWS verification confirms RDS is encrypted and non-public, private subnets do not assign public IPs, Redis/database ingress is limited to the application security group, and S3 state/DynamoDB locking are present.
 - #10: worker runtime, registration, heartbeats, capability advertisement, draining, graceful shutdown, and PostgreSQL task claims. Delivered in `e13658e` and closed with automated and local smoke-test evidence.
 - #11: persisted retry policy, failure classification, stale-lease safety, and expired-lease recovery. Delivered in `b2d33d3` and closed with unit and PostgreSQL integration evidence.
 - #12: failure-injection coverage for crash-after-claim, duplicate delivery, retry timing, DAG propagation, and recovery. Delivered in `08e8d0d` and closed with Compose-backed integration evidence.
@@ -49,7 +49,6 @@ ForgeFlow is an internal analyst-team MVP for durable, source-grounded company a
 - No approved market-data vendor, credentials, or license exists; market-derived information remains explicitly unavailable.
 - No live SEC EDGAR or OpenAI credentials are configured. The local SEC smoke command remains disabled unless an operator explicitly supplies a contactable User-Agent; it persists no response content.
 - The local SEC smoke check is verified for MSFT. It returned Microsoft CIK `0000789019`, 80 supported filings, and a sample of `8-K`, `10-K`, and `8-K`; no response content was persisted.
-- Issue #22 cannot close until the remaining RDS staging creation succeeds and an operator completes the documented private-access/remote-state smoke test.
 - #23 cannot close until an operator chooses a paid AWS environment, configures the documented GitHub environment variables/OIDC role/ECS services, and completes a staging deployment, failed-migration, and rollback drill. GitHub Actions work is intentionally paused until the account's minutes reset.
 - #24 cannot close until an authorized operator applies the RDS controls and performs the documented staged point-in-time restore drill against AWS.
 - #25 cannot close until a Google Cloud OAuth client, `AUTH_SECRET`, and an approved Workspace domain are configured in a non-local environment and the sign-in/callback/session-expiry browser tests run.
@@ -58,4 +57,4 @@ ForgeFlow is an internal analyst-team MVP for durable, source-grounded company a
 
 ## Next planned issue
 
-#39 — add production observability, alerting, and operational runbooks: implementation is pushed after local verification; awaiting Terraform validation and AWS alert/recovery drills before closure.
+#23 — complete staging container publication, migration execution, ECS service deployment, and rollback verification from the now-provisioned AWS foundation.
