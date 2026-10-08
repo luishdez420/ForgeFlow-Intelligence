@@ -18,7 +18,7 @@ ForgeFlow is an internal analyst-team MVP for durable, source-grounded company a
 
 ## In delivery
 
-- #23: local release artifacts are implemented: API/web/worker Docker images, immutable revision labels, migration compatibility guard, ECS task-definition templates, and a manual-only release workflow. The implementation is pushed; no image was pushed, release workflow was dispatched, AWS deployment was attempted, or GitHub issue was updated.
+- #23: release artifacts now include private ECS bootstrap/update/rollback handling, digest-pinned task definitions, Service Connect API discovery, scoped task/execution roles, and explicit runtime-secret injection. AWS application of the new Terraform prerequisites, runtime-secret population, GitHub OIDC/environment setup, and staging deployment/failure/rollback drills remain required before closure.
 - #24: local database lifecycle controls are implemented: configurable RDS backup/maintenance windows, snapshot tags, a constrained runtime role bootstrap, and a recovery runbook. AWS backup restoration and production-role verification remain external tests.
 - #25: Auth.js Google sign-in is configured locally with verified Workspace-domain enforcement and a server-side protected analyst route. The browser acceptance suite now verifies that an unauthenticated visitor is redirected to the fail-closed sign-in screen. OAuth credentials and a real Google callback test remain external setup work.
 - #26: persisted pilot access-control records are implemented: normalized users, analyst/admin roles, hashed invitation tokens, user revocation, workflow ownership helpers, and redacted audit events. Session-to-API enforcement is intentionally sequenced for #27; the data model and authorization rules are ready for it.

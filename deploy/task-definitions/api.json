@@ -11,11 +11,17 @@
       "name": "api",
       "image": "IMAGE_URI",
       "essential": true,
-      "portMappings": [{ "containerPort": 3001, "protocol": "tcp" }],
+      "portMappings": [
+        { "name": "api", "containerPort": 3001, "protocol": "tcp" }
+      ],
       "secrets": [
         {
           "name": "DATABASE_URL",
           "valueFrom": "DATABASE_SECRET_ARN"
+        },
+        {
+          "name": "FORGEFLOW_INTERNAL_API_SECRET",
+          "valueFrom": "INTERNAL_API_SECRET_ARN"
         }
       ],
       "logConfiguration": {

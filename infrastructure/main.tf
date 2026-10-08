@@ -157,6 +157,12 @@ resource "aws_elasticache_replication_group" "pilot" {
 resource "aws_ecs_cluster" "pilot" {
   name = local.name
 }
+
+resource "aws_service_discovery_private_dns_namespace" "pilot" {
+  name = "${local.name}.internal"
+  vpc  = aws_vpc.pilot.id
+}
+
 resource "aws_ecr_repository" "service" {
   for_each             = toset(["web", "api", "worker"])
   name                 = "${local.name}-${each.key}"
@@ -223,7 +229,7 @@ resource "aws_cloudwatch_metric_alarm" "database_cpu" {
   alarm_actions       = var.alarm_email == null ? [] : [aws_sns_topic.operations[0].arn]
 }
 resource "aws_secretsmanager_secret" "runtime" {
-  for_each = toset(["database", "redis", "google-oauth", "openai", "sec-edgar"])
+  for_each = toset(["database", "redis", "google-oauth", "internal-api", "web-auth", "openai", "sec-edgar"])
   name     = "forgeflow/${var.environment}/${each.key}"
 }
 resource "aws_iam_role" "ecs_task_execution" {
@@ -234,6 +240,24 @@ resource "aws_iam_role" "ecs_task_execution" {
 resource "aws_iam_role_policy_attachment" "ecs_task_execution" {
   role       = aws_iam_role.ecs_task_execution.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+}
+
+resource "aws_iam_role_policy" "ecs_task_execution_runtime_secrets" {
+  name = "${local.name}-runtime-secrets"
+  role = aws_iam_role.ecs_task_execution.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = ["secretsmanager:GetSecretValue"]
+      Resource = [for secret in aws_secretsmanager_secret.runtime : secret.arn]
+    }]
+  })
+}
+
+resource "aws_iam_role" "ecs_task" {
+  name               = "${local.name}-ecs-task"
+  assume_role_policy = jsonencode({ Version = "2012-10-17", Statement = [{ Effect = "Allow", Principal = { Service = "ecs-tasks.amazonaws.com" }, Action = "sts:AssumeRole" }] })
 }
 
 resource "aws_acm_certificate" "pilot" {

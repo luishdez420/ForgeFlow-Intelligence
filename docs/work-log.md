@@ -17,6 +17,13 @@ This is an append-only record of delivery evidence, decisions, failures, and def
 - Redis at-rest encryption is currently disabled. This does not change the verified #22 private-network acceptance result, but enabling it requires a replacement cache and is explicitly recorded as a pilot hardening follow-up. Terraform's DynamoDB-lock warning is also deferred for a deliberate S3-native-lockfile migration rather than an in-place state-lock change.
 - Issue #22 was closed on GitHub with the applied staging and verification evidence. The next active delivery target is #23: build/publish immutable images, run a migration task, deploy ECS revisions, and demonstrate rollback behavior.
 
+## 2026-10-08 — Issue #23 staging deployment hardening in progress
+
+- Added Terraform prerequisites for ECS task-role separation, execution-role access to only ForgeFlow runtime secrets, private Service Connect API discovery, and the missing `internal-api` and `web-auth` secret placeholders.
+- The release workflow now injects typed runtime secrets into API/web task definitions and validates all required staging environment configuration before assuming the GitHub OIDC role.
+- Added a rollback-aware deployment script that creates missing private ECS services on first release, registers digest-pinned task definitions, uses Service Connect for the API, restores prior task definitions on a later rollout failure, and scales a first-release partial service back to zero if bootstrapping fails.
+- The operator runbook documents the secret contract, OIDC boundary, GitHub environment variables, and controlled staging migration/rollback drills. No AWS task, secret value, GitHub environment, or image has been created by this implementation step.
+
 ## 2026-09-26 — Planning and foundation
 
 - Created the ForgeFlow MVP milestone, eight epics-as-labels, and dependency-ordered GitHub issues #1–#20.

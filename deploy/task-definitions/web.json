@@ -12,6 +12,33 @@
       "image": "IMAGE_URI",
       "essential": true,
       "portMappings": [{ "containerPort": 3000, "protocol": "tcp" }],
+      "environment": [
+        { "name": "FORGEFLOW_API_URL", "value": "http://api:3001" },
+        { "name": "APP_ORIGIN", "value": "WEB_APP_ORIGIN" },
+        {
+          "name": "GOOGLE_WORKSPACE_DOMAIN",
+          "value": "GOOGLE_WORKSPACE_DOMAIN"
+        },
+        { "name": "AUTH_TRUST_HOST", "value": "true" }
+      ],
+      "secrets": [
+        {
+          "name": "AUTH_SECRET",
+          "valueFrom": "WEB_AUTH_SECRET_ARN"
+        },
+        {
+          "name": "AUTH_GOOGLE_ID",
+          "valueFrom": "GOOGLE_OAUTH_SECRET_ARN:AUTH_GOOGLE_ID::"
+        },
+        {
+          "name": "AUTH_GOOGLE_SECRET",
+          "valueFrom": "GOOGLE_OAUTH_SECRET_ARN:AUTH_GOOGLE_SECRET::"
+        },
+        {
+          "name": "FORGEFLOW_INTERNAL_API_SECRET",
+          "valueFrom": "INTERNAL_API_SECRET_ARN"
+        }
+      ],
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
