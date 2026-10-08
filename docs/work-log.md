@@ -2,6 +2,14 @@
 
 This is an append-only record of delivery evidence, decisions, failures, and deferred work.
 
+## 2026-10-08 — Issue #22 staging apply partially completed
+
+- Terraform initialized against the encrypted, versioned staging S3 backend with the DynamoDB lock table and produced a reviewed 41-resource staging plan.
+- The initial apply created the VPC, two public and two private subnets, NAT gateway, private Redis replication group, ECS cluster, immutable ECR repositories, log groups, Secrets Manager placeholders, task-execution role, and initial worker/RDS CloudWatch alarms.
+- RDS creation was rejected by the account's free-plan restriction because staging requested seven days of backup retention. Terraform preserved the successfully created resources and remote state.
+- The Terraform variable rule now allows a one-day retention only for staging, which is the documented RDS minimum and accommodates this constrained account. Production continues to require seven through thirty-five days. A new staging plan and the remaining RDS apply/verification are required before #22 can close.
+- Terraform formatting and provider-backed validation now pass locally with Terraform 1.16.4. This also supersedes #39's earlier local-Terraform availability blocker; AWS alert and failure-recovery drills remain outstanding.
+
 ## 2026-09-26 — Planning and foundation
 
 - Created the ForgeFlow MVP milestone, eight epics-as-labels, and dependency-ordered GitHub issues #1–#20.

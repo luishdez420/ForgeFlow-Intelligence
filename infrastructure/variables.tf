@@ -51,8 +51,11 @@ variable "backup_retention_days" {
   type = number
 
   validation {
-    condition     = var.backup_retention_days >= 7 && var.backup_retention_days <= 35
-    error_message = "backup_retention_days must be between 7 and 35."
+    condition = (
+      (var.environment == "staging" && var.backup_retention_days >= 1 && var.backup_retention_days <= 35) ||
+      (var.environment == "production" && var.backup_retention_days >= 7 && var.backup_retention_days <= 35)
+    )
+    error_message = "backup_retention_days must be 1-35 for staging and 7-35 for production."
   }
 }
 

@@ -17,7 +17,7 @@ ForgeFlow is an internal analyst-team MVP for durable, source-grounded company a
 
 ## In delivery
 
-- #22: Terraform foundation for isolated staging and production pilot environments is implemented and statically validated. AWS account bootstrap, remote-state setup, DNS selection, `terraform plan` review, and apply/smoke evidence remain required before the issue can close.
+- #22: Terraform foundation for isolated staging and production pilot environments is implemented. The encrypted/versioned S3 backend, DynamoDB lock table, and staging foundation have been applied. RDS creation is pending a free-plan-compatible one-day staging backup retention retry; validation preserves a seven-day minimum for production.
 - #23: local release artifacts are implemented: API/web/worker Docker images, immutable revision labels, migration compatibility guard, ECS task-definition templates, and a manual-only release workflow. The implementation is pushed; no image was pushed, release workflow was dispatched, AWS deployment was attempted, or GitHub issue was updated.
 - #24: local database lifecycle controls are implemented: configurable RDS backup/maintenance windows, snapshot tags, a constrained runtime role bootstrap, and a recovery runbook. AWS backup restoration and production-role verification remain external tests.
 - #25: Auth.js Google sign-in is configured locally with verified Workspace-domain enforcement and a server-side protected analyst route. The browser acceptance suite now verifies that an unauthenticated visitor is redirected to the fail-closed sign-in screen. OAuth credentials and a real Google callback test remain external setup work.
@@ -34,7 +34,7 @@ ForgeFlow is an internal analyst-team MVP for durable, source-grounded company a
 - #36: report assembly now reads persisted facts and financial metrics, emits typed FACT/CALCULATION/UNAVAILABLE items, preserves cited AI items, and blocks publication on ERROR validation findings.
 - #37: closed. The analyst console shows owned analysis history, polls active workflows, explains retry/recovery state, surfaces validation findings, filters typed report items, and exposes persisted calculation/source-document provenance. An allow-listed analyst completed the signed-in, live-SEC workflow and report-evidence walkthrough locally on 2026-10-07.
 - #38: closed. Analyst feedback is append-only and tied to its exact published report item/version. Analysts can mark an item useful, unclear, unsupported, or incorrect with an optional comment; administrators have an open-only review queue and may resolve an item without changing any authoritative evidence. The analyst/admin browser walkthrough passed locally on 2026-10-07.
-- #39: structured API/worker lifecycle telemetry, correlation IDs, safe redaction, initial CloudWatch failure/capacity alarms, and an operations runbook are implemented. Automated code verification passed; Terraform is unavailable locally and the AWS alert-route/provider-outage/worker-termination drills remain required before closure.
+- #39: structured API/worker lifecycle telemetry, correlation IDs, safe redaction, initial CloudWatch failure/capacity alarms, and an operations runbook are implemented. Terraform formatting and validation now pass against the installed local CLI; AWS alert-route/provider-outage/worker-termination drills remain required before closure.
 
 ## Verified working locally
 
@@ -49,7 +49,7 @@ ForgeFlow is an internal analyst-team MVP for durable, source-grounded company a
 - No approved market-data vendor, credentials, or license exists; market-derived information remains explicitly unavailable.
 - No live SEC EDGAR or OpenAI credentials are configured. The local SEC smoke command remains disabled unless an operator explicitly supplies a contactable User-Agent; it persists no response content.
 - The local SEC smoke check is verified for MSFT. It returned Microsoft CIK `0000789019`, 80 supported filings, and a sample of `8-K`, `10-K`, and `8-K`; no response content was persisted.
-- Issue #22 cannot close until an authorized operator completes the documented AWS bootstrap and staging apply/smoke test.
+- Issue #22 cannot close until the remaining RDS staging creation succeeds and an operator completes the documented private-access/remote-state smoke test.
 - #23 cannot close until an operator chooses a paid AWS environment, configures the documented GitHub environment variables/OIDC role/ECS services, and completes a staging deployment, failed-migration, and rollback drill. GitHub Actions work is intentionally paused until the account's minutes reset.
 - #24 cannot close until an authorized operator applies the RDS controls and performs the documented staged point-in-time restore drill against AWS.
 - #25 cannot close until a Google Cloud OAuth client, `AUTH_SECRET`, and an approved Workspace domain are configured in a non-local environment and the sign-in/callback/session-expiry browser tests run.

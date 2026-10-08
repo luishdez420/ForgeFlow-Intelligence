@@ -195,28 +195,28 @@ resource "aws_cloudwatch_metric_alarm" "worker_task_failure" {
   alarm_description   = "Sustained worker task failures require workflow/provider investigation."
   namespace           = "ForgeFlow/${var.environment}"
   metric_name         = aws_cloudwatch_log_metric_filter.worker_task_failure.metric_transformation[0].name
-  statistic            = "Sum"
-  period               = 300
-  evaluation_periods   = 2
-  threshold            = 5
-  comparison_operator  = "GreaterThanOrEqualToThreshold"
-  treat_missing_data   = "notBreaching"
-  alarm_actions        = var.alarm_email == null ? [] : [aws_sns_topic.operations[0].arn]
+  statistic           = "Sum"
+  period              = 300
+  evaluation_periods  = 2
+  threshold           = 5
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = var.alarm_email == null ? [] : [aws_sns_topic.operations[0].arn]
 }
 
 resource "aws_cloudwatch_metric_alarm" "database_cpu" {
-  alarm_name         = "${local.name}-database-cpu"
-  alarm_description  = "RDS CPU capacity risk."
-  namespace          = "AWS/RDS"
-  metric_name        = "CPUUtilization"
+  alarm_name          = "${local.name}-database-cpu"
+  alarm_description   = "RDS CPU capacity risk."
+  namespace           = "AWS/RDS"
+  metric_name         = "CPUUtilization"
   statistic           = "Average"
   period              = 300
   evaluation_periods  = 3
   threshold           = 80
   comparison_operator = "GreaterThanOrEqualToThreshold"
-  dimensions = { DBInstanceIdentifier = aws_db_instance.pilot.id }
-  treat_missing_data = "notBreaching"
-  alarm_actions      = var.alarm_email == null ? [] : [aws_sns_topic.operations[0].arn]
+  dimensions          = { DBInstanceIdentifier = aws_db_instance.pilot.id }
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = var.alarm_email == null ? [] : [aws_sns_topic.operations[0].arn]
 }
 resource "aws_secretsmanager_secret" "runtime" {
   for_each = toset(["database", "redis", "google-oauth", "openai", "sec-edgar"])
