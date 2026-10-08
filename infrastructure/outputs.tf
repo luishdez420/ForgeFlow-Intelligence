@@ -18,6 +18,10 @@ output "ecs_task_role_arn" {
   value = aws_iam_role.ecs_task.arn
 }
 
+output "github_actions_deploy_role_arn" {
+  value = aws_iam_role.github_actions_deploy.arn
+}
+
 output "service_discovery_namespace_arn" {
   value = aws_service_discovery_private_dns_namespace.pilot.arn
 }

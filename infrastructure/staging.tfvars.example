@@ -9,6 +9,11 @@ backup_retention_days    = 7
 backup_window            = "03:00-03:30"
 maintenance_window       = "sun:04:00-sun:04:30"
 # Set database_master_password and redis_auth_token only through TF_VAR_*.
+# This repository is the default GitHub Actions OIDC trust subject. Set
+# github_actions_oidc_provider_arn only if this AWS account already has the
+# GitHub provider outside this Terraform state.
+# github_repository = "luishdez420/ForgeFlow-Intelligence"
+# github_actions_oidc_provider_arn = "arn:aws:iam::ACCOUNT:oidc-provider/token.actions.githubusercontent.com"
 # domain_name = "staging.example.com"
 # route53_zone_id = "Z123456789"
 # Optional: alert email creates an SNS subscription that must be confirmed in AWS.

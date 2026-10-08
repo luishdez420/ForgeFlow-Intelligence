@@ -5,7 +5,13 @@ locals {
   database_instance_class    = var.environment == "staging" ? "db.t3.micro" : "db.t4g.medium"
   database_allocated_storage = var.environment == "staging" ? 20 : 50
   database_max_storage       = var.environment == "staging" ? 20 : 200
+  github_actions_oidc_provider_arn = coalesce(
+    var.github_actions_oidc_provider_arn,
+    try(aws_iam_openid_connect_provider.github_actions[0].arn, null),
+  )
 }
+
+data "aws_caller_identity" "current" {}
 
 resource "aws_vpc" "pilot" {
   cidr_block           = var.vpc_cidr
@@ -258,6 +264,104 @@ resource "aws_iam_role_policy" "ecs_task_execution_runtime_secrets" {
 resource "aws_iam_role" "ecs_task" {
   name               = "${local.name}-ecs-task"
   assume_role_policy = jsonencode({ Version = "2012-10-17", Statement = [{ Effect = "Allow", Principal = { Service = "ecs-tasks.amazonaws.com" }, Action = "sts:AssumeRole" }] })
+}
+
+resource "aws_iam_openid_connect_provider" "github_actions" {
+  count = var.github_actions_oidc_provider_arn == null ? 1 : 0
+
+  url             = "https://token.actions.githubusercontent.com"
+  client_id_list  = ["sts.amazonaws.com"]
+  thumbprint_list = ["6938fd4d98bab03faadb97b34396831e3780aea1"]
+}
+
+resource "aws_iam_role" "github_actions_deploy" {
+  name = "${local.name}-github-actions-deploy"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Principal = {
+        Federated = local.github_actions_oidc_provider_arn
+      }
+      Action = "sts:AssumeRoleWithWebIdentity"
+      Condition = {
+        StringEquals = {
+          "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
+          "token.actions.githubusercontent.com:sub" = "repo:${var.github_repository}:environment:${var.environment}"
+        }
+      }
+    }]
+  })
+}
+
+resource "aws_iam_role_policy" "github_actions_deploy" {
+  name = "${local.name}-github-actions-deploy"
+  role = aws_iam_role.github_actions_deploy.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "PublishOnlyForgeFlowImages"
+        Effect   = "Allow"
+        Action   = ["ecr:BatchCheckLayerAvailability", "ecr:BatchGetImage", "ecr:CompleteLayerUpload", "ecr:DescribeImages", "ecr:GetDownloadUrlForLayer", "ecr:InitiateLayerUpload", "ecr:PutImage", "ecr:UploadLayerPart"]
+        Resource = [for repository in aws_ecr_repository.service : repository.arn]
+      },
+      {
+        Sid      = "GetEcrAuthorizationToken"
+        Effect   = "Allow"
+        Action   = ["ecr:GetAuthorizationToken"]
+        Resource = "*"
+      },
+      {
+        Sid      = "RegisterForgeFlowTaskDefinitions"
+        Effect   = "Allow"
+        Action   = ["ecs:RegisterTaskDefinition"]
+        Resource = "*"
+      },
+      {
+        Sid    = "ReadEcsReleaseState"
+        Effect = "Allow"
+        Action = [
+          "ecs:DescribeServices",
+          "ecs:DescribeTaskDefinition",
+          "ecs:DescribeTasks"
+        ]
+        Resource = "*"
+      },
+      {
+        Sid    = "DeployOnlyToForgeFlowCluster"
+        Effect = "Allow"
+        Action = [
+          "ecs:CreateService",
+          "ecs:RunTask",
+          "ecs:UpdateService"
+        ]
+        Resource = "*"
+        Condition = {
+          ArnEquals = {
+            "ecs:cluster" = aws_ecs_cluster.pilot.arn
+          }
+        }
+      },
+      {
+        Sid      = "ReadPrivateServiceDiscoveryNamespace"
+        Effect   = "Allow"
+        Action   = ["servicediscovery:GetNamespace"]
+        Resource = aws_service_discovery_private_dns_namespace.pilot.arn
+      },
+      {
+        Sid      = "PassOnlyForgeFlowEcsRoles"
+        Effect   = "Allow"
+        Action   = ["iam:PassRole"]
+        Resource = [aws_iam_role.ecs_task.arn, aws_iam_role.ecs_task_execution.arn]
+        Condition = {
+          StringEquals = {
+            "iam:PassedToService" = "ecs-tasks.amazonaws.com"
+          }
+        }
+      }
+    ]
+  })
 }
 
 resource "aws_acm_certificate" "pilot" {

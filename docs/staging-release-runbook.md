@@ -12,11 +12,14 @@ use a developer's AWS access keys in CI.
 2. Create values for the placeholders in AWS Secrets Manager. Keep the values
    out of the repository, Terraform variables file, Actions logs, and issue
    comments.
-3. Register a GitHub OIDC provider and a staging-only deployment role trusted
-   by `repo:luishdez420/ForgeFlow-Intelligence:environment:staging`. Scope that
-   role to the staging ECR repositories, ECS cluster/services/task definitions,
-   Cloud Map namespace, and `iam:PassRole` for only the two ForgeFlow ECS
-   roles.
+3. The Terraform plan creates the GitHub OIDC provider and a staging-only
+   deployment role trusted only by
+   `repo:luishdez420/ForgeFlow-Intelligence:environment:staging`. It is scoped
+   to ForgeFlow ECR publication, the staging ECS cluster, the private Cloud Map
+   namespace, and `iam:PassRole` for only the two ForgeFlow ECS roles. If this
+   AWS account already has the GitHub OIDC provider outside this Terraform
+   state, set `github_actions_oidc_provider_arn` in the ignored `staging.tfvars`
+   file before planning instead of creating a duplicate.
 4. Create the GitHub `staging` environment, restrict who can dispatch it, and
    configure the repository environment variables below.
 
@@ -47,7 +50,7 @@ Configure these as GitHub **environment variables**, not repository files:
 | Variable                          | Source                                                                        |
 | --------------------------------- | ----------------------------------------------------------------------------- |
 | `AWS_REGION`                      | `us-east-1`                                                                   |
-| `AWS_DEPLOY_ROLE_ARN`             | Staging-only GitHub OIDC deployment role                                      |
+| `AWS_DEPLOY_ROLE_ARN`             | Terraform `github_actions_deploy_role_arn` output                             |
 | `ECS_CLUSTER`                     | Terraform `ecs_cluster_name` output                                           |
 | `ECS_SUBNETS`                     | Terraform `ecs_private_subnet_ids`, comma-separated                           |
 | `ECS_SECURITY_GROUP`              | Terraform `ecs_application_security_group_id` output                          |

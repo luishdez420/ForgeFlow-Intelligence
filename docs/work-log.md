@@ -28,6 +28,7 @@ This is an append-only record of delivery evidence, decisions, failures, and def
 
 - Made public-origin and Workspace-domain values optional only for the first private ECS bootstrap; analyst access still requires both.
 - Corrected the ECS Service Connect shorthand used to create the internal API service before its first AWS deployment.
+- Added a Terraform-managed GitHub Actions OIDC provider/deployment role. Its trust policy permits only this repository's `staging` environment and its permissions are constrained to ForgeFlow image publication, the staging ECS cluster, service discovery, and the two ECS task roles.
 
 ## 2026-09-26 — Planning and foundation
 

@@ -82,3 +82,15 @@ variable "alarm_email" {
   default   = null
   sensitive = true
 }
+
+variable "github_repository" {
+  type        = string
+  default     = "luishdez420/ForgeFlow-Intelligence"
+  description = "Owner/repository trusted to deploy this environment through GitHub Actions OIDC."
+}
+
+variable "github_actions_oidc_provider_arn" {
+  type        = string
+  default     = null
+  description = "Existing GitHub Actions OIDC provider ARN. Leave null to manage the provider in this Terraform state."
+}
