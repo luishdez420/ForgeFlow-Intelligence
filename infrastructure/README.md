@@ -18,9 +18,15 @@ CI/CD; this issue intentionally does not deploy application containers.
    Route53 hosted zone if TLS DNS validation is required.
 5. Copy `backend.tfbackend.example` and the appropriate environment vars file
    outside the repository. Set a distinct `key` for staging and production.
-6. Export strong
-   values for `TF_VAR_database_master_password` and
-   `TF_VAR_redis_auth_token`; never commit them.
+6. Export strong values for `TF_VAR_database_master_password` and
+   `TF_VAR_redis_auth_token`; never commit them. Use hexadecimal output for
+   the RDS password because RDS rejects several characters that base64 output
+   may contain:
+
+   ```sh
+   export TF_VAR_database_master_password="$(openssl rand -hex 32)"
+   export TF_VAR_redis_auth_token="$(openssl rand -hex 32)"
+   ```
 
 ## Validate and apply
 
