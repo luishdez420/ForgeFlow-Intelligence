@@ -9,6 +9,7 @@ This is an append-only record of delivery evidence, decisions, failures, and def
 - RDS creation was rejected by the account's free-plan restriction because staging requested seven days of backup retention. Terraform preserved the successfully created resources and remote state.
 - The Terraform variable rule now allows a one-day retention only for staging, which is the documented RDS minimum and accommodates this constrained account. Production continues to require seven through thirty-five days. A new staging plan and the remaining RDS apply/verification are required before #22 can close.
 - Terraform formatting and provider-backed validation now pass locally with Terraform 1.16.4. This also supersedes #39's earlier local-Terraform availability blocker; AWS alert and failure-recovery drills remain outstanding.
+- The one-day staging retry reached the RDS API but the account rejected `db.t4g.medium` as unavailable on its free plan. Staging now selects the free-plan-eligible `db.t4g.micro` with 20 GiB fixed storage; production retains `db.t4g.medium`, 50 GiB initial storage, and 200 GiB autoscaling maximum. A fresh plan is required before retrying RDS creation.
 
 ## 2026-09-26 — Planning and foundation
 

@@ -1,7 +1,10 @@
 locals {
-  name          = "forgeflow-${var.environment}"
-  public_cidrs  = [cidrsubnet(var.vpc_cidr, 4, 0), cidrsubnet(var.vpc_cidr, 4, 1)]
-  private_cidrs = [cidrsubnet(var.vpc_cidr, 4, 8), cidrsubnet(var.vpc_cidr, 4, 9)]
+  name                       = "forgeflow-${var.environment}"
+  public_cidrs               = [cidrsubnet(var.vpc_cidr, 4, 0), cidrsubnet(var.vpc_cidr, 4, 1)]
+  private_cidrs              = [cidrsubnet(var.vpc_cidr, 4, 8), cidrsubnet(var.vpc_cidr, 4, 9)]
+  database_instance_class    = var.environment == "staging" ? "db.t4g.micro" : "db.t4g.medium"
+  database_allocated_storage = var.environment == "staging" ? 20 : 50
+  database_max_storage       = var.environment == "staging" ? 20 : 200
 }
 
 resource "aws_vpc" "pilot" {
@@ -111,9 +114,9 @@ resource "aws_db_instance" "pilot" {
   identifier                 = local.name
   engine                     = "postgres"
   engine_version             = "17"
-  instance_class             = "db.t4g.medium"
-  allocated_storage          = 50
-  max_allocated_storage      = 200
+  instance_class             = local.database_instance_class
+  allocated_storage          = local.database_allocated_storage
+  max_allocated_storage      = local.database_max_storage
   storage_encrypted          = true
   db_name                    = var.database_name
   username                   = var.database_master_username
