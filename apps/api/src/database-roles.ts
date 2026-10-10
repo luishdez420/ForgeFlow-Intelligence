@@ -100,10 +100,11 @@ async function passwordRoleStatement(
   const roleAttributes =
     action === "CREATE"
       ? "LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE INHERIT NOREPLICATION"
-      : "LOGIN NOCREATEDB NOCREATEROLE INHERIT NOREPLICATION";
+      : "";
+  const template = `${action} ROLE %I${roleAttributes ? ` ${roleAttributes}` : ""} PASSWORD %L`;
   const statement = await client.query<{ statement: string }>(
     "SELECT format($1::text, $2::text, $3::text) AS statement",
-    [`${action} ROLE %I ${roleAttributes} PASSWORD %L`, username, password],
+    [template, username, password],
   );
   return statement.rows[0]?.statement ?? "";
 }
@@ -127,8 +128,9 @@ export async function configureRuntimeDatabaseRole(
       rolcreaterole: boolean;
       rolreplication: boolean;
       rolbypassrls: boolean;
+      rolcanlogin: boolean;
     }>(
-      `SELECT rolsuper, rolcreatedb, rolcreaterole, rolreplication, rolbypassrls
+      `SELECT rolsuper, rolcreatedb, rolcreaterole, rolreplication, rolbypassrls, rolcanlogin
        FROM pg_roles WHERE rolname = $1`,
       [config.runtimeUsername],
     );
@@ -139,7 +141,8 @@ export async function configureRuntimeDatabaseRole(
         existingRole.rolcreatedb ||
         existingRole.rolcreaterole ||
         existingRole.rolreplication ||
-        existingRole.rolbypassrls)
+        existingRole.rolbypassrls ||
+        !existingRole.rolcanlogin)
     ) {
       throw new Error(
         "The existing runtime database role has elevated PostgreSQL privileges.",

@@ -23,6 +23,7 @@ This is an append-only record of delivery evidence, decisions, failures, and def
 
 - The isolated restore drill revealed that RDS rejects an `ALTER ROLE ... NOSUPERUSER` clause even when the target role is already non-superuser, because the RDS master is not a native PostgreSQL superuser.
 - Bootstrap now validates that an existing runtime role has none of the elevated PostgreSQL privilege flags, then rotates only the safe login/password attributes. New roles remain explicitly created without elevated privileges.
+- The first RDS retry showed that the service also rejects reasserting `NOREPLICATION` during an alter. Existing role rotation now changes only its password after that privilege validation; it does not attempt to modify any role-attribute bit.
 
 ## 2026-10-10 — Issue #23 validated task-definition rendering repair
 
