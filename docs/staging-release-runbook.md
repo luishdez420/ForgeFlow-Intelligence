@@ -50,6 +50,12 @@ Use a password manager or other approved secret channel to retain the database
 password and generated values. The database is private; this URL is intended
 only for ECS tasks inside the VPC.
 
+When populating the database secret from a local workstation, construct the
+RDS connection URL **after** loading any local `.env` file (or in a shell that
+does not load it). Local development commonly defines `DATABASE_URL` with a
+Compose address such as `127.0.0.1:15432`; that value must never be uploaded to
+the staging `database` secret.
+
 ## GitHub staging environment variables
 
 Configure these as GitHub **environment variables**, not repository files:

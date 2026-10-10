@@ -35,6 +35,11 @@ This is an append-only record of delivery evidence, decisions, failures, and def
 - The first private release correctly stopped at OIDC authentication before any image, migration, or ECS mutation. CloudTrail showed this repository emits GitHub's ID-based `sub` claim rather than the legacy name-only format.
 - Added a Terraform input for the exact trusted OIDC subject. It preserves a precise repository/environment trust boundary instead of accepting a wildcard claim.
 
+## 2026-10-10 — Issue #23 private migration connectivity finding
+
+- The first authenticated private release built and published all immutable images, then stopped before ECS service creation because the migration task could not reach a local-development database address stored in the staging database secret.
+- No migration was applied and no service rollout began. The staging secret must be replaced with an RDS endpoint URL before a fresh release is dispatched.
+
 ## 2026-09-26 — Planning and foundation
 
 - Created the ForgeFlow MVP milestone, eight epics-as-labels, and dependency-ordered GitHub issues #1–#20.
