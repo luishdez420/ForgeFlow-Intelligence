@@ -1,28 +1,28 @@
 {
-  "family": "forgeflow-API_ENV-migration",
+  "family": "forgeflow-__API_ENV__-migration",
   "networkMode": "awsvpc",
   "requiresCompatibilities": ["FARGATE"],
   "cpu": "512",
   "memory": "1024",
-  "executionRoleArn": "TASK_EXECUTION_ROLE_ARN",
-  "taskRoleArn": "TASK_ROLE_ARN",
+  "executionRoleArn": "__TASK_EXECUTION_ROLE_ARN__",
+  "taskRoleArn": "__TASK_ROLE_ARN__",
   "containerDefinitions": [
     {
       "name": "migration",
-      "image": "IMAGE_URI",
+      "image": "__IMAGE_URI__",
       "essential": true,
       "command": ["./node_modules/.bin/tsx", "apps/api/src/migrate.ts"],
       "secrets": [
         {
           "name": "DATABASE_URL",
-          "valueFrom": "DATABASE_SECRET_ARN"
+          "valueFrom": "__DATABASE_SECRET_ARN__"
         }
       ],
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
-          "awslogs-group": "/forgeflow/API_ENV/migration",
-          "awslogs-region": "AWS_REGION",
+          "awslogs-group": "/forgeflow/__API_ENV__/migration",
+          "awslogs-region": "__AWS_REGION__",
           "awslogs-stream-prefix": "ecs"
         }
       }

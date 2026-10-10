@@ -25,18 +25,7 @@ declare -A created_services
 render_task_definition() {
   local service="$1"
   local image_uri="$2"
-  sed \
-    -e "s|API_ENV|${TARGET_ENV}|g" \
-    -e "s|AWS_REGION|${AWS_REGION}|g" \
-    -e "s|TASK_EXECUTION_ROLE_ARN|${ECS_TASK_EXECUTION_ROLE_ARN}|g" \
-    -e "s|TASK_ROLE_ARN|${ECS_TASK_ROLE_ARN}|g" \
-    -e "s|DATABASE_SECRET_ARN|${DATABASE_SECRET_ARN}|g" \
-    -e "s|INTERNAL_API_SECRET_ARN|${INTERNAL_API_SECRET_ARN}|g" \
-    -e "s|WEB_AUTH_SECRET_ARN|${WEB_AUTH_SECRET_ARN}|g" \
-    -e "s|GOOGLE_OAUTH_SECRET_ARN|${GOOGLE_OAUTH_SECRET_ARN}|g" \
-    -e "s|WEB_APP_ORIGIN|${WEB_APP_ORIGIN}|g" \
-    -e "s|GOOGLE_WORKSPACE_DOMAIN|${GOOGLE_WORKSPACE_DOMAIN}|g" \
-    -e "s|IMAGE_URI|${image_uri}|g" \
+  IMAGE_URI="$image_uri" node scripts/render-task-definition.mjs \
     "deploy/task-definitions/${service}.json" > "${service}-task.json"
 }
 

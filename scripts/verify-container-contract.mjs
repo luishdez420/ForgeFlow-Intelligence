@@ -39,7 +39,7 @@ for (const name of requiredTaskDefinitions) {
     throw new Error(`Missing required task definition: ${file}`);
   }
   const definition = JSON.parse(readFileSync(file, "utf8"));
-  if (definition.containerDefinitions?.[0]?.image !== "IMAGE_URI") {
+  if (definition.containerDefinitions?.[0]?.image !== "__IMAGE_URI__") {
     throw new Error(
       `${file} must accept an immutable image URI at release time.`,
     );
@@ -49,6 +49,52 @@ for (const name of requiredTaskDefinitions) {
     if (!secrets.some((secret) => secret.name === secretName)) {
       throw new Error(`${file} must inject ${secretName} at runtime.`);
     }
+  }
+}
+
+const renderEnvironment = {
+  TARGET_ENV: "staging",
+  AWS_REGION: "us-east-1",
+  ECS_TASK_EXECUTION_ROLE_ARN: "arn:aws:iam::123456789012:role/execution",
+  ECS_TASK_ROLE_ARN: "arn:aws:iam::123456789012:role/task",
+  DATABASE_SECRET_ARN:
+    "arn:aws:secretsmanager:us-east-1:123456789012:secret:database",
+  INTERNAL_API_SECRET_ARN:
+    "arn:aws:secretsmanager:us-east-1:123456789012:secret:internal-api",
+  WEB_AUTH_SECRET_ARN:
+    "arn:aws:secretsmanager:us-east-1:123456789012:secret:web-auth",
+  GOOGLE_OAUTH_SECRET_ARN:
+    "arn:aws:secretsmanager:us-east-1:123456789012:secret:google-oauth",
+  WEB_APP_ORIGIN: "http://localhost:3000",
+  GOOGLE_WORKSPACE_DOMAIN: "",
+  IMAGE_URI: "example.invalid/forgeflow@sha256:abc123",
+};
+
+for (const name of requiredTaskDefinitions) {
+  const rendered = JSON.parse(
+    execFileSync(
+      "node",
+      [
+        "scripts/render-task-definition.mjs",
+        `deploy/task-definitions/${name}.json`,
+      ],
+      { encoding: "utf8", env: { ...process.env, ...renderEnvironment } },
+    ),
+  );
+  for (const container of rendered.containerDefinitions ?? []) {
+    for (const entry of container.environment ?? []) {
+      if (!entry.name?.trim()) {
+        throw new Error(`${name} rendered a blank environment variable name.`);
+      }
+    }
+  }
+  if (
+    name === "web" &&
+    rendered.containerDefinitions?.[0]?.environment?.some(
+      (entry) => entry.name === "GOOGLE_WORKSPACE_DOMAIN",
+    )
+  ) {
+    throw new Error("A blank optional Workspace domain must be omitted.");
   }
 }
 

@@ -1,49 +1,49 @@
 {
-  "family": "forgeflow-API_ENV-web",
+  "family": "forgeflow-__API_ENV__-web",
   "networkMode": "awsvpc",
   "requiresCompatibilities": ["FARGATE"],
   "cpu": "512",
   "memory": "1024",
-  "executionRoleArn": "TASK_EXECUTION_ROLE_ARN",
-  "taskRoleArn": "TASK_ROLE_ARN",
+  "executionRoleArn": "__TASK_EXECUTION_ROLE_ARN__",
+  "taskRoleArn": "__TASK_ROLE_ARN__",
   "containerDefinitions": [
     {
       "name": "web",
-      "image": "IMAGE_URI",
+      "image": "__IMAGE_URI__",
       "essential": true,
       "portMappings": [{ "containerPort": 3000, "protocol": "tcp" }],
       "environment": [
         { "name": "FORGEFLOW_API_URL", "value": "http://api:3001" },
-        { "name": "APP_ORIGIN", "value": "WEB_APP_ORIGIN" },
+        { "name": "APP_ORIGIN", "value": "__WEB_APP_ORIGIN__" },
         {
           "name": "GOOGLE_WORKSPACE_DOMAIN",
-          "value": "GOOGLE_WORKSPACE_DOMAIN"
+          "value": "__GOOGLE_WORKSPACE_DOMAIN__"
         },
         { "name": "AUTH_TRUST_HOST", "value": "true" }
       ],
       "secrets": [
         {
           "name": "AUTH_SECRET",
-          "valueFrom": "WEB_AUTH_SECRET_ARN"
+          "valueFrom": "__WEB_AUTH_SECRET_ARN__"
         },
         {
           "name": "AUTH_GOOGLE_ID",
-          "valueFrom": "GOOGLE_OAUTH_SECRET_ARN:AUTH_GOOGLE_ID::"
+          "valueFrom": "__GOOGLE_OAUTH_SECRET_ARN__:AUTH_GOOGLE_ID::"
         },
         {
           "name": "AUTH_GOOGLE_SECRET",
-          "valueFrom": "GOOGLE_OAUTH_SECRET_ARN:AUTH_GOOGLE_SECRET::"
+          "valueFrom": "__GOOGLE_OAUTH_SECRET_ARN__:AUTH_GOOGLE_SECRET::"
         },
         {
           "name": "FORGEFLOW_INTERNAL_API_SECRET",
-          "valueFrom": "INTERNAL_API_SECRET_ARN"
+          "valueFrom": "__INTERNAL_API_SECRET_ARN__"
         }
       ],
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
-          "awslogs-group": "/forgeflow/API_ENV/web",
-          "awslogs-region": "AWS_REGION",
+          "awslogs-group": "/forgeflow/__API_ENV__/web",
+          "awslogs-region": "__AWS_REGION__",
           "awslogs-stream-prefix": "ecs"
         }
       },

@@ -1,15 +1,15 @@
 {
-  "family": "forgeflow-API_ENV-api",
+  "family": "forgeflow-__API_ENV__-api",
   "networkMode": "awsvpc",
   "requiresCompatibilities": ["FARGATE"],
   "cpu": "512",
   "memory": "1024",
-  "executionRoleArn": "TASK_EXECUTION_ROLE_ARN",
-  "taskRoleArn": "TASK_ROLE_ARN",
+  "executionRoleArn": "__TASK_EXECUTION_ROLE_ARN__",
+  "taskRoleArn": "__TASK_ROLE_ARN__",
   "containerDefinitions": [
     {
       "name": "api",
-      "image": "IMAGE_URI",
+      "image": "__IMAGE_URI__",
       "essential": true,
       "portMappings": [
         { "name": "api", "containerPort": 3001, "protocol": "tcp" }
@@ -17,18 +17,18 @@
       "secrets": [
         {
           "name": "DATABASE_URL",
-          "valueFrom": "DATABASE_SECRET_ARN"
+          "valueFrom": "__DATABASE_SECRET_ARN__"
         },
         {
           "name": "FORGEFLOW_INTERNAL_API_SECRET",
-          "valueFrom": "INTERNAL_API_SECRET_ARN"
+          "valueFrom": "__INTERNAL_API_SECRET_ARN__"
         }
       ],
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
-          "awslogs-group": "/forgeflow/API_ENV/api",
-          "awslogs-region": "AWS_REGION",
+          "awslogs-group": "/forgeflow/__API_ENV__/api",
+          "awslogs-region": "__AWS_REGION__",
           "awslogs-stream-prefix": "ecs"
         }
       },

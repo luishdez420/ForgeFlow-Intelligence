@@ -32,8 +32,8 @@ use a developer's AWS access keys in CI.
 
 The first private deployment does **not** require a public DNS name, TLS
 certificate, or Google Workspace domain. The web task starts with
-`http://localhost:3000` as a placeholder origin and an empty Workspace-domain
-restriction. Its health endpoint can be checked inside ECS, but analyst
+`http://localhost:3000` as a placeholder origin and omits the Workspace-domain
+setting entirely. Its health endpoint can be checked inside ECS, but analyst
 sign-in must remain disabled until the public ingress and identity work are
 complete.
 

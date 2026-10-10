@@ -1,6 +1,6 @@
 # Engineering status
 
-Last updated: 2026-10-08
+Last updated: 2026-10-10
 
 ## Product state
 
@@ -18,7 +18,7 @@ ForgeFlow is an internal analyst-team MVP for durable, source-grounded company a
 
 ## In delivery
 
-- #23: release artifacts now include private ECS bootstrap/update/rollback handling, digest-pinned task definitions, Service Connect API discovery, scoped task/execution roles, a Terraform-managed staging-only GitHub OIDC role, and explicit runtime-secret injection. Private bootstrap does not require public DNS/TLS or a Workspace domain; AWS application of the new Terraform prerequisites, runtime-secret population, GitHub environment setup, and staging deployment/failure/rollback drills remain required before closure.
+- #23: release artifacts now include private ECS bootstrap/update/rollback handling, digest-pinned task definitions, Service Connect API discovery, scoped task/execution roles, a Terraform-managed staging-only GitHub OIDC role, and explicit runtime-secret injection. Task definitions are rendered as validated JSON rather than fragile global text replacement; an empty optional Workspace-domain setting is omitted before AWS registration. Private bootstrap does not require public DNS/TLS or a Workspace domain; the remaining staging service deployment/failure/rollback drills are required before closure.
 - #24: local database lifecycle controls are implemented: configurable RDS backup/maintenance windows, snapshot tags, a constrained runtime role bootstrap, and a recovery runbook. AWS backup restoration and production-role verification remain external tests.
 - #25: Auth.js Google sign-in is configured locally with verified Workspace-domain enforcement and a server-side protected analyst route. The browser acceptance suite now verifies that an unauthenticated visitor is redirected to the fail-closed sign-in screen. OAuth credentials and a real Google callback test remain external setup work.
 - #26: persisted pilot access-control records are implemented: normalized users, analyst/admin roles, hashed invitation tokens, user revocation, workflow ownership helpers, and redacted audit events. Session-to-API enforcement is intentionally sequenced for #27; the data model and authorization rules are ready for it.
@@ -49,7 +49,7 @@ ForgeFlow is an internal analyst-team MVP for durable, source-grounded company a
 - No approved market-data vendor, credentials, or license exists; market-derived information remains explicitly unavailable.
 - No live SEC EDGAR or OpenAI credentials are configured. The local SEC smoke command remains disabled unless an operator explicitly supplies a contactable User-Agent; it persists no response content.
 - The local SEC smoke check is verified for MSFT. It returned Microsoft CIK `0000789019`, 80 supported filings, and a sample of `8-K`, `10-K`, and `8-K`; no response content was persisted.
-- #23 cannot close until an operator completes the authenticated staging deployment, failed-migration, and rollback drills. The first authenticated migration reached RDS but correctly rejected an untrusted RDS certificate chain; API/worker images now install the official AWS RDS trust bundle and the workflow prints failed migration diagnostics automatically. Public DNS/TLS and Workspace identity are not required for the private bootstrap.
+- #23 cannot close until an operator completes the authenticated staging deployment, failed-migration, and rollback drills. The first authenticated migration reached RDS but correctly rejected an untrusted RDS certificate chain; API/worker images now install the official AWS RDS trust bundle and the workflow prints failed migration diagnostics automatically. The following service-registration attempt exposed a blank environment-name template collision when the optional Workspace-domain input was empty; the renderer now prevents that class of invalid JSON before AWS receives it. Public DNS/TLS and Workspace identity are not required for the private bootstrap.
 - #24 cannot close until an authorized operator applies the RDS controls and performs the documented staged point-in-time restore drill against AWS.
 - #25 cannot close until a Google Cloud OAuth client, `AUTH_SECRET`, and an approved Workspace domain are configured in a non-local environment and the sign-in/callback/session-expiry browser tests run.
 - Redis at-rest encryption is not enabled in the deployed cache. Redis is private, token-protected, and encrypted in transit; enabling at-rest encryption requires a planned cache replacement and should be tracked as a pilot hardening follow-up before sensitive coordination payloads are permitted.
