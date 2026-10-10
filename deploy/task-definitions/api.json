@@ -17,7 +17,7 @@
       "secrets": [
         {
           "name": "DATABASE_URL",
-          "valueFrom": "__DATABASE_SECRET_ARN__"
+          "valueFrom": "__DATABASE_RUNTIME_SECRET_ARN__"
         },
         {
           "name": "FORGEFLOW_INTERNAL_API_SECRET",

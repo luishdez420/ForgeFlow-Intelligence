@@ -22,7 +22,14 @@ for (const file of requiredFiles) {
   }
 }
 
-const requiredTaskDefinitions = ["api", "web", "worker", "migration"];
+const requiredTaskDefinitions = [
+  "api",
+  "web",
+  "worker",
+  "migration",
+  "database-role-bootstrap",
+  "database-runtime-smoke",
+];
 const requiredSecretNames = {
   api: ["DATABASE_URL", "FORGEFLOW_INTERNAL_API_SECRET"],
   web: [
@@ -31,6 +38,10 @@ const requiredSecretNames = {
     "AUTH_GOOGLE_SECRET",
     "FORGEFLOW_INTERNAL_API_SECRET",
   ],
+  worker: ["DATABASE_URL"],
+  migration: ["DATABASE_URL"],
+  "database-role-bootstrap": ["DATABASE_MIGRATOR_URL", "DATABASE_RUNTIME_URL"],
+  "database-runtime-smoke": ["DATABASE_URL"],
 };
 
 for (const name of requiredTaskDefinitions) {
@@ -59,6 +70,8 @@ const renderEnvironment = {
   ECS_TASK_ROLE_ARN: "arn:aws:iam::123456789012:role/task",
   DATABASE_SECRET_ARN:
     "arn:aws:secretsmanager:us-east-1:123456789012:secret:database",
+  DATABASE_RUNTIME_SECRET_ARN:
+    "arn:aws:secretsmanager:us-east-1:123456789012:secret:database-runtime",
   INTERNAL_API_SECRET_ARN:
     "arn:aws:secretsmanager:us-east-1:123456789012:secret:internal-api",
   WEB_AUTH_SECRET_ARN:
@@ -77,6 +90,19 @@ const releaseWorkflow = readFileSync(
 if (!releaseWorkflow.includes("node scripts/render-task-definition.mjs")) {
   throw new Error(
     "The migration release step must use the JSON task renderer.",
+  );
+}
+for (const taskDefinition of [
+  "database-role-bootstrap.json",
+  "database-runtime-smoke.json",
+]) {
+  if (!releaseWorkflow.includes(taskDefinition)) {
+    throw new Error(`The release workflow must run ${taskDefinition}.`);
+  }
+}
+if (!releaseWorkflow.includes("DATABASE_RUNTIME_SECRET_ARN")) {
+  throw new Error(
+    "The release workflow must require the runtime database secret.",
   );
 }
 if (releaseWorkflow.includes("sed \\")) {
@@ -110,6 +136,59 @@ if (!deployScript.includes("Rollback drill passed:")) {
     "The service deployment script must verify rollback restoration.",
   );
 }
+
+const apiDefinition = JSON.parse(
+  readFileSync("deploy/task-definitions/api.json", "utf8"),
+);
+const workerDefinition = JSON.parse(
+  readFileSync("deploy/task-definitions/worker.json", "utf8"),
+);
+const migrationDefinition = JSON.parse(
+  readFileSync("deploy/task-definitions/migration.json", "utf8"),
+);
+const bootstrapDefinition = JSON.parse(
+  readFileSync("deploy/task-definitions/database-role-bootstrap.json", "utf8"),
+);
+const runtimeSmokeDefinition = JSON.parse(
+  readFileSync("deploy/task-definitions/database-runtime-smoke.json", "utf8"),
+);
+const secretValue = (definition, name) =>
+  definition.containerDefinitions[0].secrets.find(
+    (secret) => secret.name === name,
+  )?.valueFrom;
+for (const definition of [apiDefinition, workerDefinition]) {
+  if (
+    secretValue(definition, "DATABASE_URL") !==
+    "__DATABASE_RUNTIME_SECRET_ARN__"
+  ) {
+    throw new Error(
+      "Application tasks must use the constrained runtime database secret.",
+    );
+  }
+}
+if (
+  secretValue(migrationDefinition, "DATABASE_URL") !== "__DATABASE_SECRET_ARN__"
+) {
+  throw new Error("Migration tasks must retain the migration database secret.");
+}
+if (
+  secretValue(bootstrapDefinition, "DATABASE_MIGRATOR_URL") !==
+    "__DATABASE_SECRET_ARN__" ||
+  secretValue(bootstrapDefinition, "DATABASE_RUNTIME_URL") !==
+    "__DATABASE_RUNTIME_SECRET_ARN__"
+) {
+  throw new Error(
+    "The database-role bootstrap must receive both separated credentials.",
+  );
+}
+if (
+  secretValue(runtimeSmokeDefinition, "DATABASE_URL") !==
+  "__DATABASE_RUNTIME_SECRET_ARN__"
+) {
+  throw new Error(
+    "The runtime smoke must use the constrained runtime database secret.",
+  );
+}
 if (!deployScript.includes("for rollback_service in api web worker")) {
   throw new Error(
     "Rollback must not overwrite the active service loop variable.",
@@ -128,7 +207,30 @@ for (const name of requiredTaskDefinitions) {
           DATABASE_SECRET_ARN: renderEnvironment.DATABASE_SECRET_ARN,
           IMAGE_URI: renderEnvironment.IMAGE_URI,
         }
-      : renderEnvironment;
+      : name === "database-role-bootstrap"
+        ? {
+            TARGET_ENV: renderEnvironment.TARGET_ENV,
+            AWS_REGION: renderEnvironment.AWS_REGION,
+            ECS_TASK_EXECUTION_ROLE_ARN:
+              renderEnvironment.ECS_TASK_EXECUTION_ROLE_ARN,
+            ECS_TASK_ROLE_ARN: renderEnvironment.ECS_TASK_ROLE_ARN,
+            DATABASE_SECRET_ARN: renderEnvironment.DATABASE_SECRET_ARN,
+            DATABASE_RUNTIME_SECRET_ARN:
+              renderEnvironment.DATABASE_RUNTIME_SECRET_ARN,
+            IMAGE_URI: renderEnvironment.IMAGE_URI,
+          }
+        : name === "database-runtime-smoke"
+          ? {
+              TARGET_ENV: renderEnvironment.TARGET_ENV,
+              AWS_REGION: renderEnvironment.AWS_REGION,
+              ECS_TASK_EXECUTION_ROLE_ARN:
+                renderEnvironment.ECS_TASK_EXECUTION_ROLE_ARN,
+              ECS_TASK_ROLE_ARN: renderEnvironment.ECS_TASK_ROLE_ARN,
+              DATABASE_RUNTIME_SECRET_ARN:
+                renderEnvironment.DATABASE_RUNTIME_SECRET_ARN,
+              IMAGE_URI: renderEnvironment.IMAGE_URI,
+            }
+          : renderEnvironment;
   const rendered = JSON.parse(
     execFileSync(
       "node",

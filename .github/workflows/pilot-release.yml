@@ -42,6 +42,7 @@ jobs:
       NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
       AWS_DEPLOY_ROLE_ARN: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
       DATABASE_SECRET_ARN: ${{ vars.DATABASE_SECRET_ARN }}
+      DATABASE_RUNTIME_SECRET_ARN: ${{ vars.DATABASE_RUNTIME_SECRET_ARN }}
       INTERNAL_API_SECRET_ARN: ${{ vars.INTERNAL_API_SECRET_ARN }}
       WEB_AUTH_SECRET_ARN: ${{ vars.WEB_AUTH_SECRET_ARN }}
       GOOGLE_OAUTH_SECRET_ARN: ${{ vars.GOOGLE_OAUTH_SECRET_ARN }}
@@ -71,6 +72,7 @@ jobs:
           test -n "$AWS_REGION"
           test -n "$AWS_DEPLOY_ROLE_ARN"
           test -n "$DATABASE_SECRET_ARN"
+          test -n "$DATABASE_RUNTIME_SECRET_ARN"
           test -n "$INTERNAL_API_SECRET_ARN"
           test -n "$WEB_AUTH_SECRET_ARN"
           test -n "$GOOGLE_OAUTH_SECRET_ARN"
@@ -142,6 +144,40 @@ jobs:
             echo "Migration task stopped with exit code $exit_code."
             aws ecs describe-tasks --cluster "$ECS_CLUSTER" --tasks "$task_arn" --query 'tasks[0].{stoppedReason:stoppedReason,containers:containers[].{name:name,reason:reason,exitCode:exitCode}}' --output json || true
             aws logs get-log-events --log-group-name "/forgeflow/${TARGET_ENV}/migration" --log-stream-name "ecs/migration/${task_id}" --start-from-head --query 'events[].message' --output text || true
+            exit 1
+          fi
+      - name: Bootstrap constrained application database role
+        env:
+          IMAGE_URI: ${{ steps.ecr.outputs.registry }}/forgeflow-${{ inputs.environment }}-api@${{ steps.build-api.outputs.digest }}
+        run: |
+          node scripts/render-task-definition.mjs \
+            deploy/task-definitions/database-role-bootstrap.json > database-role-bootstrap-task.json
+          task_definition=$(aws ecs register-task-definition --cli-input-json file://database-role-bootstrap-task.json --query 'taskDefinition.taskDefinitionArn' --output text)
+          task_arn=$(aws ecs run-task --cluster "$ECS_CLUSTER" --launch-type FARGATE --task-definition "$task_definition" --network-configuration "awsvpcConfiguration={subnets=[$ECS_SUBNETS],securityGroups=[$ECS_SECURITY_GROUP],assignPublicIp=DISABLED}" --query 'tasks[0].taskArn' --output text)
+          aws ecs wait tasks-stopped --cluster "$ECS_CLUSTER" --tasks "$task_arn"
+          exit_code=$(aws ecs describe-tasks --cluster "$ECS_CLUSTER" --tasks "$task_arn" --query 'tasks[0].containers[0].exitCode' --output text)
+          if [ "$exit_code" != "0" ]; then
+            task_id="${task_arn##*/}"
+            echo "Database-role bootstrap stopped with exit code $exit_code."
+            aws ecs describe-tasks --cluster "$ECS_CLUSTER" --tasks "$task_arn" --query 'tasks[0].{stoppedReason:stoppedReason,containers:containers[].{name:name,reason:reason,exitCode:exitCode}}' --output json || true
+            aws logs get-log-events --log-group-name "/forgeflow/${TARGET_ENV}/database-role-bootstrap" --log-stream-name "ecs/database-role-bootstrap/${task_id}" --start-from-head --query 'events[].message' --output text || true
+            exit 1
+          fi
+      - name: Verify constrained runtime database access
+        env:
+          IMAGE_URI: ${{ steps.ecr.outputs.registry }}/forgeflow-${{ inputs.environment }}-api@${{ steps.build-api.outputs.digest }}
+        run: |
+          node scripts/render-task-definition.mjs \
+            deploy/task-definitions/database-runtime-smoke.json > database-runtime-smoke-task.json
+          task_definition=$(aws ecs register-task-definition --cli-input-json file://database-runtime-smoke-task.json --query 'taskDefinition.taskDefinitionArn' --output text)
+          task_arn=$(aws ecs run-task --cluster "$ECS_CLUSTER" --launch-type FARGATE --task-definition "$task_definition" --network-configuration "awsvpcConfiguration={subnets=[$ECS_SUBNETS],securityGroups=[$ECS_SECURITY_GROUP],assignPublicIp=DISABLED}" --query 'tasks[0].taskArn' --output text)
+          aws ecs wait tasks-stopped --cluster "$ECS_CLUSTER" --tasks "$task_arn"
+          exit_code=$(aws ecs describe-tasks --cluster "$ECS_CLUSTER" --tasks "$task_arn" --query 'tasks[0].containers[0].exitCode' --output text)
+          if [ "$exit_code" != "0" ]; then
+            task_id="${task_arn##*/}"
+            echo "Runtime database smoke stopped with exit code $exit_code."
+            aws ecs describe-tasks --cluster "$ECS_CLUSTER" --tasks "$task_arn" --query 'tasks[0].{stoppedReason:stoppedReason,containers:containers[].{name:name,reason:reason,exitCode:exitCode}}' --output json || true
+            aws logs get-log-events --log-group-name "/forgeflow/${TARGET_ENV}/database-role-bootstrap" --log-stream-name "ecs/database-runtime-smoke/${task_id}" --start-from-head --query 'events[].message' --output text || true
             exit 1
           fi
       - name: Deploy service revisions with rollback

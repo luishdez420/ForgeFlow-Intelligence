@@ -2,6 +2,13 @@
 
 This is an append-only record of delivery evidence, decisions, failures, and deferred work.
 
+## 2026-10-10 — Issue #23 closed; Issue #24 runtime credential separation delivered
+
+- Closed #23 after a normal private staging release, a controlled migration task failure before any service update, and an API revision rollback drill each produced the expected result. The release uses digest-pinned images and GitHub OIDC rather than long-lived deployment keys.
+- Added a distinct `database-runtime` Secrets Manager placeholder. API and worker task definitions consume only that secret; the migration task continues to use the migration secret.
+- Added an idempotent ECS bootstrap task that creates or rotates `forgeflow_runtime` from the separate runtime URL, plus a release-blocking, rolled-back read/write smoke task that verifies the constrained login before application services update.
+- Updated the recovery runbook for the actual one-day free-plan staging backup window and the isolated restore procedure. AWS point-in-time restore evidence remains the required closure gate for #24.
+
 ## 2026-10-10 — Issue #23 validated task-definition rendering repair
 
 - The private release reached the ECS service-registration phase after successfully publishing immutable images and completing its migration task. AWS then rejected the web definition because global text replacement changed the literal `GOOGLE_WORKSPACE_DOMAIN` environment-variable name to an empty string when the optional private-bootstrap value was blank.

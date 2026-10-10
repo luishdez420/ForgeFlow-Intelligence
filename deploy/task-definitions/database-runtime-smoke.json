@@ -1,5 +1,5 @@
 {
-  "family": "forgeflow-__API_ENV__-worker",
+  "family": "forgeflow-__API_ENV__-database-runtime-smoke",
   "networkMode": "awsvpc",
   "requiresCompatibilities": ["FARGATE"],
   "cpu": "512",
@@ -8,9 +8,13 @@
   "taskRoleArn": "__TASK_ROLE_ARN__",
   "containerDefinitions": [
     {
-      "name": "worker",
+      "name": "database-runtime-smoke",
       "image": "__IMAGE_URI__",
       "essential": true,
+      "command": [
+        "./node_modules/.bin/tsx",
+        "apps/api/src/database-runtime-smoke.ts"
+      ],
       "secrets": [
         {
           "name": "DATABASE_URL",
@@ -20,7 +24,7 @@
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
-          "awslogs-group": "/forgeflow/__API_ENV__/worker",
+          "awslogs-group": "/forgeflow/__API_ENV__/database-role-bootstrap",
           "awslogs-region": "__AWS_REGION__",
           "awslogs-stream-prefix": "ecs"
         }

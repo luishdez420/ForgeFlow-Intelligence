@@ -1,5 +1,5 @@
 {
-  "family": "forgeflow-__API_ENV__-worker",
+  "family": "forgeflow-__API_ENV__-database-role-bootstrap",
   "networkMode": "awsvpc",
   "requiresCompatibilities": ["FARGATE"],
   "cpu": "512",
@@ -8,19 +8,27 @@
   "taskRoleArn": "__TASK_ROLE_ARN__",
   "containerDefinitions": [
     {
-      "name": "worker",
+      "name": "database-role-bootstrap",
       "image": "__IMAGE_URI__",
       "essential": true,
+      "command": ["./node_modules/.bin/tsx", "apps/api/src/database-roles.ts"],
+      "environment": [
+        { "name": "DATABASE_MIGRATOR_USERNAME", "value": "forgeflow_migrator" }
+      ],
       "secrets": [
         {
-          "name": "DATABASE_URL",
+          "name": "DATABASE_MIGRATOR_URL",
+          "valueFrom": "__DATABASE_SECRET_ARN__"
+        },
+        {
+          "name": "DATABASE_RUNTIME_URL",
           "valueFrom": "__DATABASE_RUNTIME_SECRET_ARN__"
         }
       ],
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
-          "awslogs-group": "/forgeflow/__API_ENV__/worker",
+          "awslogs-group": "/forgeflow/__API_ENV__/database-role-bootstrap",
           "awslogs-region": "__AWS_REGION__",
           "awslogs-stream-prefix": "ecs"
         }

@@ -9,6 +9,64 @@ export type RuntimeRoleConfig = {
   runtimeUsername: string;
 };
 
+export function runtimeRoleConfigFromEnvironment(
+  environment: NodeJS.ProcessEnv,
+): RuntimeRoleConfig {
+  const migratorDatabaseUrl = environment.DATABASE_MIGRATOR_URL;
+  const migratorUsername = environment.DATABASE_MIGRATOR_USERNAME;
+  const runtimePassword = environment.DATABASE_RUNTIME_PASSWORD;
+  const runtimeUsername = environment.DATABASE_RUNTIME_USERNAME;
+  const runtimeDatabaseUrl = environment.DATABASE_RUNTIME_URL;
+
+  if (runtimeDatabaseUrl) {
+    let parsed: URL;
+    try {
+      parsed = new URL(runtimeDatabaseUrl);
+    } catch {
+      throw new Error("DATABASE_RUNTIME_URL must be a valid PostgreSQL URL.");
+    }
+    if (parsed.protocol !== "postgres:" && parsed.protocol !== "postgresql:") {
+      throw new Error("DATABASE_RUNTIME_URL must use the PostgreSQL protocol.");
+    }
+    if (!parsed.username || !parsed.password) {
+      throw new Error(
+        "DATABASE_RUNTIME_URL must include the runtime username and password.",
+      );
+    }
+    if (
+      runtimeUsername &&
+      runtimeUsername !== decodeURIComponent(parsed.username)
+    ) {
+      throw new Error(
+        "DATABASE_RUNTIME_USERNAME must match the username in DATABASE_RUNTIME_URL.",
+      );
+    }
+    if (!migratorDatabaseUrl || !migratorUsername) {
+      throw new Error(
+        "DATABASE_MIGRATOR_URL and DATABASE_MIGRATOR_USERNAME are required.",
+      );
+    }
+    return {
+      migratorDatabaseUrl,
+      migratorUsername,
+      runtimePassword: decodeURIComponent(parsed.password),
+      runtimeUsername: decodeURIComponent(parsed.username),
+    };
+  }
+
+  if (!migratorDatabaseUrl || !migratorUsername || !runtimePassword) {
+    throw new Error(
+      "DATABASE_MIGRATOR_URL, DATABASE_MIGRATOR_USERNAME, and DATABASE_RUNTIME_PASSWORD are required.",
+    );
+  }
+  return {
+    migratorDatabaseUrl,
+    migratorUsername,
+    runtimePassword,
+    runtimeUsername: runtimeUsername ?? "forgeflow_runtime",
+  };
+}
+
 export function quoteDatabaseIdentifier(value: string): string {
   if (!roleNamePattern.test(value)) {
     throw new Error("Database role names must be lowercase identifiers.");
@@ -92,23 +150,9 @@ export async function configureRuntimeDatabaseRole(
 }
 
 async function main(): Promise<void> {
-  const migratorDatabaseUrl = process.env.DATABASE_MIGRATOR_URL;
-  const migratorUsername = process.env.DATABASE_MIGRATOR_USERNAME;
-  const runtimePassword = process.env.DATABASE_RUNTIME_PASSWORD;
-  const runtimeUsername =
-    process.env.DATABASE_RUNTIME_USERNAME ?? "forgeflow_runtime";
-
-  if (!migratorDatabaseUrl || !migratorUsername || !runtimePassword) {
-    throw new Error(
-      "DATABASE_MIGRATOR_URL, DATABASE_MIGRATOR_USERNAME, and DATABASE_RUNTIME_PASSWORD are required.",
-    );
-  }
-  await configureRuntimeDatabaseRole({
-    migratorDatabaseUrl,
-    migratorUsername,
-    runtimePassword,
-    runtimeUsername,
-  });
+  await configureRuntimeDatabaseRole(
+    runtimeRoleConfigFromEnvironment(process.env),
+  );
 }
 
 if (process.argv[1]?.endsWith("database-roles.ts")) {

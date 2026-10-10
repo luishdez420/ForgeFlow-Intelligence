@@ -8,6 +8,7 @@
     "start": "tsx src/server.ts",
     "db:migrate": "tsx src/migrate.ts",
     "db:bootstrap-runtime-role": "tsx src/database-roles.ts",
+    "db:smoke-runtime": "tsx src/database-runtime-smoke.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:integration": "INTEGRATION_TEST=1 vitest run test/*.integration.test.ts"

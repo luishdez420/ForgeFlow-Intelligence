@@ -39,12 +39,13 @@ complete.
 
 ## Runtime-secret contract
 
-| Secret name                      | Required representation                                                                                                    | Consumers              |
-| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------- | ---------------------- |
-| `forgeflow/staging/database`     | One `postgresql://` connection URL using the RDS hostname, migration user, password, database name, and `sslmode=require`. | API, worker, migration |
-| `forgeflow/staging/internal-api` | One high-entropy random string.                                                                                            | API and web            |
-| `forgeflow/staging/web-auth`     | One high-entropy Auth.js secret.                                                                                           | Web                    |
-| `forgeflow/staging/google-oauth` | JSON with `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET` keys.                                                                  | Web                    |
+| Secret name                          | Required representation                                                                                                    | Consumers                |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| `forgeflow/staging/database`         | One `postgresql://` connection URL using the RDS hostname, migration user, password, database name, and `sslmode=require`. | Migration/bootstrap only |
+| `forgeflow/staging/database-runtime` | One `postgresql://` connection URL using the `forgeflow_runtime` login and the same private RDS endpoint.                  | API and worker           |
+| `forgeflow/staging/internal-api`     | One high-entropy random string.                                                                                            | API and web              |
+| `forgeflow/staging/web-auth`         | One high-entropy Auth.js secret.                                                                                           | Web                      |
+| `forgeflow/staging/google-oauth`     | JSON with `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET` keys.                                                                  | Web                      |
 
 Use a password manager or other approved secret channel to retain the database
 password and generated values. The database is private; this URL is intended
@@ -76,6 +77,7 @@ Configure these as GitHub **environment variables**, not repository files:
 | `ECS_TASK_ROLE_ARN`               | Terraform output of the same name                                             |
 | `SERVICE_DISCOVERY_NAMESPACE_ARN` | Terraform output of the same name                                             |
 | `DATABASE_SECRET_ARN`             | `runtime_secret_arns.database`                                                |
+| `DATABASE_RUNTIME_SECRET_ARN`     | `runtime_secret_arns["database-runtime"]`                                     |
 | `INTERNAL_API_SECRET_ARN`         | `runtime_secret_arns["internal-api"]`                                         |
 | `WEB_AUTH_SECRET_ARN`             | `runtime_secret_arns["web-auth"]`                                             |
 | `GOOGLE_OAUTH_SECRET_ARN`         | `runtime_secret_arns["google-oauth"]`                                         |
@@ -89,8 +91,9 @@ Configure these as GitHub **environment variables**, not repository files:
 2. Confirm each ECR image is referenced by its digest in the registered task
    definitions, not a mutable tag. Build tags include the GitHub run ID and
    attempt, so a re-dispatched release never overwrites an immutable ECR tag.
-3. Confirm the migration task stops with exit code zero before the services
-   update.
+3. Confirm the migration, constrained-role bootstrap, and transaction-scoped
+   runtime read/write smoke tasks each stop with exit code zero before the
+   services update.
 4. Confirm `forgeflow-staging-api`, `forgeflow-staging-web`, and
    `forgeflow-staging-worker` reach ECS stable state. The API is registered in
    the private `api` Service Connect namespace; web calls it at

@@ -182,7 +182,7 @@ resource "aws_ecr_repository" "service" {
   }
 }
 resource "aws_cloudwatch_log_group" "service" {
-  for_each          = toset(["web", "api", "worker", "migration"])
+  for_each          = toset(["web", "api", "worker", "migration", "database-role-bootstrap"])
   name              = "/forgeflow/${var.environment}/${each.key}"
   retention_in_days = 30
 }
@@ -239,7 +239,7 @@ resource "aws_cloudwatch_metric_alarm" "database_cpu" {
   alarm_actions       = var.alarm_email == null ? [] : [aws_sns_topic.operations[0].arn]
 }
 resource "aws_secretsmanager_secret" "runtime" {
-  for_each = toset(["database", "redis", "google-oauth", "internal-api", "web-auth", "openai", "sec-edgar"])
+  for_each = toset(["database", "database-runtime", "redis", "google-oauth", "internal-api", "web-auth", "openai", "sec-edgar"])
   name     = "forgeflow/${var.environment}/${each.key}"
 }
 resource "aws_iam_role" "ecs_task_execution" {
