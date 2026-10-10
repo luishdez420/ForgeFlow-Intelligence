@@ -104,13 +104,7 @@ jobs:
         env:
           IMAGE_URI: ${{ steps.ecr.outputs.registry }}/forgeflow-${{ inputs.environment }}-api@${{ steps.build-api.outputs.digest }}
         run: |
-          sed \
-            -e "s|API_ENV|${TARGET_ENV}|g" \
-            -e "s|AWS_REGION|${AWS_REGION}|g" \
-            -e "s|TASK_EXECUTION_ROLE_ARN|${ECS_TASK_EXECUTION_ROLE_ARN}|g" \
-            -e "s|TASK_ROLE_ARN|${ECS_TASK_ROLE_ARN}|g" \
-            -e "s|DATABASE_SECRET_ARN|${DATABASE_SECRET_ARN}|g" \
-            -e "s|IMAGE_URI|${IMAGE_URI}|g" \
+          node scripts/render-task-definition.mjs \
             deploy/task-definitions/migration.json > migration-task.json
           task_definition=$(aws ecs register-task-definition --cli-input-json file://migration-task.json --query 'taskDefinition.taskDefinitionArn' --output text)
           task_arn=$(aws ecs run-task --cluster "$ECS_CLUSTER" --launch-type FARGATE --task-definition "$task_definition" --network-configuration "awsvpcConfiguration={subnets=[$ECS_SUBNETS],securityGroups=[$ECS_SECURITY_GROUP],assignPublicIp=DISABLED}" --query 'tasks[0].taskArn' --output text)

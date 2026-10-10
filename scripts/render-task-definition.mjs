@@ -23,8 +23,11 @@ const tokenValues = {
 };
 
 const optionalEnvironmentTokens = new Set(["__GOOGLE_WORKSPACE_DOMAIN__"]);
+const definition = JSON.parse(readFileSync(templatePath, "utf8"));
+const template = JSON.stringify(definition);
 
 for (const [token, value] of Object.entries(tokenValues)) {
+  if (!template.includes(token)) continue;
   if (optionalEnvironmentTokens.has(token)) continue;
   if (!value) throw new Error(`Missing value for ${token}.`);
 }
@@ -45,8 +48,6 @@ const replaceTokens = (value) => {
   }
   return value;
 };
-
-const definition = JSON.parse(readFileSync(templatePath, "utf8"));
 
 for (const container of definition.containerDefinitions ?? []) {
   container.environment = (container.environment ?? []).filter(

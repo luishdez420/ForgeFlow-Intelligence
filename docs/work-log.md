@@ -7,6 +7,7 @@ This is an append-only record of delivery evidence, decisions, failures, and def
 - The private release reached the ECS service-registration phase after successfully publishing immutable images and completing its migration task. AWS then rejected the web definition because global text replacement changed the literal `GOOGLE_WORKSPACE_DOMAIN` environment-variable name to an empty string when the optional private-bootstrap value was blank.
 - Replaced the `sed` renderer with a JSON-aware Node renderer using unique placeholders. It validates required inputs, rejects unresolved placeholders and blank environment names, and removes the optional Workspace-domain entry entirely when it has no value.
 - Extended the release container-contract check to render every task definition with the private-bootstrap inputs before CI can dispatch AWS work. This is a local/preflight guardrail; it requires no AWS configuration or secret changes.
+- The subsequent run exposed a duplicate inline migration renderer that had not yet adopted this guardrail. It could corrupt the task-role placeholder and produced AWS's misleading `Role is not valid` error. The release workflow now invokes the shared renderer and CI asserts that the migration path cannot regress to global text substitution.
 
 ## 2026-10-08 — Issue #22 staging apply partially completed
 

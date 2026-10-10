@@ -70,7 +70,34 @@ const renderEnvironment = {
   IMAGE_URI: "example.invalid/forgeflow@sha256:abc123",
 };
 
+const releaseWorkflow = readFileSync(
+  ".github/workflows/pilot-release.yml",
+  "utf8",
+);
+if (!releaseWorkflow.includes("node scripts/render-task-definition.mjs")) {
+  throw new Error(
+    "The migration release step must use the JSON task renderer.",
+  );
+}
+if (releaseWorkflow.includes("sed \\")) {
+  throw new Error(
+    "The migration release step must not use global text substitution.",
+  );
+}
+
 for (const name of requiredTaskDefinitions) {
+  const environment =
+    name === "migration"
+      ? {
+          TARGET_ENV: renderEnvironment.TARGET_ENV,
+          AWS_REGION: renderEnvironment.AWS_REGION,
+          ECS_TASK_EXECUTION_ROLE_ARN:
+            renderEnvironment.ECS_TASK_EXECUTION_ROLE_ARN,
+          ECS_TASK_ROLE_ARN: renderEnvironment.ECS_TASK_ROLE_ARN,
+          DATABASE_SECRET_ARN: renderEnvironment.DATABASE_SECRET_ARN,
+          IMAGE_URI: renderEnvironment.IMAGE_URI,
+        }
+      : renderEnvironment;
   const rendered = JSON.parse(
     execFileSync(
       "node",
@@ -78,7 +105,7 @@ for (const name of requiredTaskDefinitions) {
         "scripts/render-task-definition.mjs",
         `deploy/task-definitions/${name}.json`,
       ],
-      { encoding: "utf8", env: { ...process.env, ...renderEnvironment } },
+      { encoding: "utf8", env: { ...process.env, ...environment } },
     ),
   );
   for (const container of rendered.containerDefinitions ?? []) {
