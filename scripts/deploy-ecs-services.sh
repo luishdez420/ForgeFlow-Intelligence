@@ -57,6 +57,16 @@ for service in api web worker; do
   if [[ "$status" == "ACTIVE" ]]; then
     previous_task_definitions[$service]=$(aws ecs describe-services --cluster "$ECS_CLUSTER" --services "$service_name" --query 'services[0].taskDefinition' --output text)
     aws ecs update-service --cluster "$ECS_CLUSTER" --service "$service_name" --task-definition "$task_definition" --force-new-deployment >/dev/null
+    if [[ "${ROLLBACK_DRILL:-false}" == "true" && "$service" == "api" ]]; then
+      echo "Starting expected staging rollback drill for ${service_name}."
+      rollback
+      aws ecs wait services-stable --cluster "$ECS_CLUSTER" --services "$service_name"
+      restored_task_definition=$(aws ecs describe-services --cluster "$ECS_CLUSTER" --services "$service_name" --query 'services[0].taskDefinition' --output text)
+      test "$restored_task_definition" = "${previous_task_definitions[$service]}"
+      echo "Rollback drill passed: ${service_name} restored its prior task definition."
+      trap - ERR
+      exit 0
+    fi
   elif [[ "$service" == "api" ]]; then
     aws ecs create-service \
       --cluster "$ECS_CLUSTER" \
@@ -80,6 +90,11 @@ for service in api web worker; do
       --network-configuration "awsvpcConfiguration={subnets=[$ECS_SUBNETS],securityGroups=[$ECS_SECURITY_GROUP],assignPublicIp=DISABLED}" \
       >/dev/null
     created_services[$service]=true
+  fi
+
+  if [[ "${ROLLBACK_DRILL:-false}" == "true" && "$service" == "api" ]]; then
+    echo "Rollback drill requires an existing active API service." >&2
+    exit 1
   fi
 
   aws ecs wait services-stable --cluster "$ECS_CLUSTER" --services "$service_name"

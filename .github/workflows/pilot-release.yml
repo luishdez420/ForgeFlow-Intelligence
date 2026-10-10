@@ -12,6 +12,16 @@ on:
         description: Type DEPLOY to authorize this manual release
         required: true
         type: string
+      migration_failure_drill:
+        description: "Staging only: intentionally fail the migration before services change"
+        required: false
+        default: false
+        type: boolean
+      rollback_drill:
+        description: "Staging only: update then restore the existing API service revision"
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -43,6 +53,8 @@ jobs:
       ECS_TASK_EXECUTION_ROLE_ARN: ${{ vars.ECS_TASK_EXECUTION_ROLE_ARN }}
       ECS_TASK_ROLE_ARN: ${{ vars.ECS_TASK_ROLE_ARN }}
       SERVICE_DISCOVERY_NAMESPACE_ARN: ${{ vars.SERVICE_DISCOVERY_NAMESPACE_ARN }}
+      MIGRATION_FAILURE_DRILL: ${{ inputs.migration_failure_drill }}
+      ROLLBACK_DRILL: ${{ inputs.rollback_drill }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -68,6 +80,16 @@ jobs:
           test -n "$ECS_TASK_EXECUTION_ROLE_ARN"
           test -n "$ECS_TASK_ROLE_ARN"
           test -n "$SERVICE_DISCOVERY_NAMESPACE_ARN"
+          if [[ "$MIGRATION_FAILURE_DRILL" == "true" || "$ROLLBACK_DRILL" == "true" ]]; then
+            test "$TARGET_ENV" = "staging" || {
+              echo "Failure and rollback drills are restricted to staging." >&2
+              exit 1
+            }
+          fi
+          if [[ "$MIGRATION_FAILURE_DRILL" == "true" && "$ROLLBACK_DRILL" == "true" ]]; then
+            echo "Choose only one release drill at a time." >&2
+            exit 1
+          fi
       - uses: aws-actions/configure-aws-credentials@v5
         with:
           role-to-assume: ${{ env.AWS_DEPLOY_ROLE_ARN }}
@@ -107,7 +129,12 @@ jobs:
           node scripts/render-task-definition.mjs \
             deploy/task-definitions/migration.json > migration-task.json
           task_definition=$(aws ecs register-task-definition --cli-input-json file://migration-task.json --query 'taskDefinition.taskDefinitionArn' --output text)
-          task_arn=$(aws ecs run-task --cluster "$ECS_CLUSTER" --launch-type FARGATE --task-definition "$task_definition" --network-configuration "awsvpcConfiguration={subnets=[$ECS_SUBNETS],securityGroups=[$ECS_SECURITY_GROUP],assignPublicIp=DISABLED}" --query 'tasks[0].taskArn' --output text)
+          migration_overrides=()
+          if [[ "$MIGRATION_FAILURE_DRILL" == "true" ]]; then
+            echo "Starting the expected staging migration-failure drill; services will not be updated."
+            migration_overrides=(--overrides '{"containerOverrides":[{"name":"migration","command":["node","-e","process.exit(42)"]}]}')
+          fi
+          task_arn=$(aws ecs run-task --cluster "$ECS_CLUSTER" --launch-type FARGATE --task-definition "$task_definition" "${migration_overrides[@]}" --network-configuration "awsvpcConfiguration={subnets=[$ECS_SUBNETS],securityGroups=[$ECS_SECURITY_GROUP],assignPublicIp=DISABLED}" --query 'tasks[0].taskArn' --output text)
           aws ecs wait tasks-stopped --cluster "$ECS_CLUSTER" --tasks "$task_arn"
           exit_code=$(aws ecs describe-tasks --cluster "$ECS_CLUSTER" --tasks "$task_arn" --query 'tasks[0].containers[0].exitCode' --output text)
           if [ "$exit_code" != "0" ]; then
@@ -122,4 +149,5 @@ jobs:
           API_IMAGE_URI: ${{ steps.ecr.outputs.registry }}/forgeflow-${{ inputs.environment }}-api@${{ steps.build-api.outputs.digest }}
           WEB_IMAGE_URI: ${{ steps.ecr.outputs.registry }}/forgeflow-${{ inputs.environment }}-web@${{ steps.build-web.outputs.digest }}
           WORKER_IMAGE_URI: ${{ steps.ecr.outputs.registry }}/forgeflow-${{ inputs.environment }}-worker@${{ steps.build-worker.outputs.digest }}
+          ROLLBACK_DRILL: ${{ inputs.rollback_drill }}
         run: bash scripts/deploy-ecs-services.sh

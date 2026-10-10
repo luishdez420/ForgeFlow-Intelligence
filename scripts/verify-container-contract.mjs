@@ -84,6 +84,23 @@ if (releaseWorkflow.includes("sed \\")) {
     "The migration release step must not use global text substitution.",
   );
 }
+for (const input of ["migration_failure_drill", "rollback_drill"]) {
+  if (!releaseWorkflow.includes(`${input}:`)) {
+    throw new Error(`The release workflow must expose the ${input} control.`);
+  }
+}
+if (!releaseWorkflow.includes('test "$TARGET_ENV" = "staging"')) {
+  throw new Error("Release drills must be restricted to staging.");
+}
+if (
+  !readFileSync("scripts/deploy-ecs-services.sh", "utf8").includes(
+    "Rollback drill passed:",
+  )
+) {
+  throw new Error(
+    "The service deployment script must verify rollback restoration.",
+  );
+}
 
 for (const name of requiredTaskDefinitions) {
   const environment =

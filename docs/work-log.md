@@ -8,6 +8,7 @@ This is an append-only record of delivery evidence, decisions, failures, and def
 - Replaced the `sed` renderer with a JSON-aware Node renderer using unique placeholders. It validates required inputs, rejects unresolved placeholders and blank environment names, and removes the optional Workspace-domain entry entirely when it has no value.
 - Extended the release container-contract check to render every task definition with the private-bootstrap inputs before CI can dispatch AWS work. This is a local/preflight guardrail; it requires no AWS configuration or secret changes.
 - The subsequent run exposed a duplicate inline migration renderer that had not yet adopted this guardrail. It could corrupt the task-role placeholder and produced AWS's misleading `Role is not valid` error. The release workflow now invokes the shared renderer and CI asserts that the migration path cannot regress to global text substitution.
+- Added two explicit staging-only dispatch controls for the remaining acceptance evidence: a migration task that intentionally exits before any service update, and an API update-then-restore rollback drill that verifies the prior task definition is restored and stable. The controls cannot be combined and are rejected for production.
 
 ## 2026-10-08 — Issue #22 staging apply partially completed
 

@@ -94,12 +94,19 @@ Configure these as GitHub **environment variables**, not repository files:
    `forgeflow-staging-worker` reach ECS stable state. The API is registered in
    the private `api` Service Connect namespace; web calls it at
    `http://api:3001` without public task addresses.
-5. For the controlled failure drill, dispatch a deliberately invalid migration
-   revision in an isolated staging change. Verify the migration task fails and
-   no service task definition changes.
-6. For the rollback drill, deploy a deliberately unhealthy service revision in
-   isolated staging. Verify the workflow restores the prior task definition and
-   service stability. Do not use production for either drill.
+5. For the controlled migration-failure drill, dispatch **Pilot release** with
+   `environment=staging`, `confirmation=DEPLOY`, and
+   `migration_failure_drill=true`. It runs a task that intentionally exits 42
+   before the service-deployment step. The workflow is expected to fail; keep
+   its task diagnostics as evidence and verify no service task definition
+   changed.
+6. For the controlled rollback drill, dispatch **Pilot release** with
+   `environment=staging`, `confirmation=DEPLOY`, and `rollback_drill=true`.
+   It performs the ordinary migration, updates only the existing API service,
+   immediately restores its recorded prior task definition, waits for the
+   service to stabilize, and prints `Rollback drill passed`. This workflow is
+   expected to succeed. Do not enable both drill inputs or use either on
+   production.
 
 ## Notes
 
