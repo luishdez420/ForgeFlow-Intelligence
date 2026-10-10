@@ -30,11 +30,13 @@ render_task_definition() {
 }
 
 rollback() {
-  for service in api web worker; do
-    local service_name="forgeflow-${TARGET_ENV}-${service}"
-    if [[ -n "${previous_task_definitions[$service]:-}" ]]; then
-      aws ecs update-service --cluster "$ECS_CLUSTER" --service "$service_name" --task-definition "${previous_task_definitions[$service]}" --force-new-deployment >/dev/null
-    elif [[ "${created_services[$service]:-}" == "true" ]]; then
+  local rollback_service
+  local service_name
+  for rollback_service in api web worker; do
+    service_name="forgeflow-${TARGET_ENV}-${rollback_service}"
+    if [[ -n "${previous_task_definitions[$rollback_service]:-}" ]]; then
+      aws ecs update-service --cluster "$ECS_CLUSTER" --service "$service_name" --task-definition "${previous_task_definitions[$rollback_service]}" --force-new-deployment >/dev/null
+    elif [[ "${created_services[$rollback_service]:-}" == "true" ]]; then
       aws ecs update-service --cluster "$ECS_CLUSTER" --service "$service_name" --desired-count 0 >/dev/null
     fi
   done

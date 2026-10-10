@@ -104,13 +104,15 @@ if (!releaseWorkflow.includes("@${{ steps.build-api.outputs.digest }}")) {
     "Deployment must reference the API image by immutable digest.",
   );
 }
-if (
-  !readFileSync("scripts/deploy-ecs-services.sh", "utf8").includes(
-    "Rollback drill passed:",
-  )
-) {
+const deployScript = readFileSync("scripts/deploy-ecs-services.sh", "utf8");
+if (!deployScript.includes("Rollback drill passed:")) {
   throw new Error(
     "The service deployment script must verify rollback restoration.",
+  );
+}
+if (!deployScript.includes("for rollback_service in api web worker")) {
+  throw new Error(
+    "Rollback must not overwrite the active service loop variable.",
   );
 }
 

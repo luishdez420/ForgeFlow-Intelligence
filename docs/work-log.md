@@ -10,6 +10,7 @@ This is an append-only record of delivery evidence, decisions, failures, and def
 - The subsequent run exposed a duplicate inline migration renderer that had not yet adopted this guardrail. It could corrupt the task-role placeholder and produced AWS's misleading `Role is not valid` error. The release workflow now invokes the shared renderer and CI asserts that the migration path cannot regress to global text substitution.
 - Added two explicit staging-only dispatch controls for the remaining acceptance evidence: a migration task that intentionally exits before any service update, and an API update-then-restore rollback drill that verifies the prior task definition is restored and stable. The controls cannot be combined and are rejected for production.
 - The migration-failure drill correctly stopped before service deployment, but its subsequent rollback-drill dispatch could not overwrite the immutable ECR tag created for the same commit. ECR publication tags now include the GitHub run ID and attempt; ECS continues to receive only the resulting image digest.
+- The first rollback drill reached its deliberate restore operation but the rollback helper reused the caller's `service` variable, so its final assertion referenced an unset worker entry. The helper now uses a scoped rollback-loop variable and the container contract rejects a regression.
 
 ## 2026-10-08 — Issue #22 staging apply partially completed
 
