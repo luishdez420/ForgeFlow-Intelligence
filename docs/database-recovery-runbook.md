@@ -30,14 +30,16 @@ tags. Production deletion protection remains enabled.
 
 1. Choose a point in time in the staging RDS automated-backup window.
 2. Restore to a new, isolated instance; never overwrite the source instance.
-3. Attach only the application security group. Create a temporary, isolated
-   Secrets Manager runtime URL for the restored endpoint; never alter the live
-   `database-runtime` secret during a drill.
-4. Run the `database-role-bootstrap` task against the restored migration and
-   runtime secrets, then run `database-runtime-smoke`. It reads the active role,
-   performs an `INSERT ... ON CONFLICT` against `forgeflow.companies`, and rolls
-   the transaction back. A zero exit code proves runtime read/write access
-   without retaining drill data.
+3. Attach only the application security group. Populate the Terraform-managed
+   `database-restore-drill-migration` and `database-restore-drill-runtime`
+   secrets with URLs for the restored endpoint; never alter either live database
+   secret during a drill.
+4. Run `scripts/run-database-restore-drill.sh`. It discovers the deployed API
+   image, launches `database-role-bootstrap`, then launches
+   `database-runtime-smoke`. The smoke task reads the active role, performs an
+   `INSERT ... ON CONFLICT` against `forgeflow.companies`, and rolls the
+   transaction back. A zero exit code proves runtime read/write access without
+   retaining drill data.
 5. Record restore start/end time, selected recovery point, RDS events, smoke
    result, and any schema incompatibility in the issue evidence.
 6. Delete the isolated restored instance only after the evidence is captured.

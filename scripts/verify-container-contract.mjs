@@ -268,5 +268,8 @@ if (
 execFileSync("bash", ["-n", "scripts/deploy-ecs-services.sh"], {
   stdio: "inherit",
 });
+execFileSync("bash", ["-n", "scripts/run-database-restore-drill.sh"], {
+  stdio: "inherit",
+});
 
 console.info("Container contract check passed.");

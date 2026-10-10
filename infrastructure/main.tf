@@ -239,7 +239,7 @@ resource "aws_cloudwatch_metric_alarm" "database_cpu" {
   alarm_actions       = var.alarm_email == null ? [] : [aws_sns_topic.operations[0].arn]
 }
 resource "aws_secretsmanager_secret" "runtime" {
-  for_each = toset(["database", "database-runtime", "redis", "google-oauth", "internal-api", "web-auth", "openai", "sec-edgar"])
+  for_each = toset(["database", "database-runtime", "database-restore-drill-migration", "database-restore-drill-runtime", "redis", "google-oauth", "internal-api", "web-auth", "openai", "sec-edgar"])
   name     = "forgeflow/${var.environment}/${each.key}"
 }
 resource "aws_iam_role" "ecs_task_execution" {
