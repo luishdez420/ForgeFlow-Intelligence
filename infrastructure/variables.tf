@@ -94,3 +94,9 @@ variable "github_actions_oidc_provider_arn" {
   default     = null
   description = "Existing GitHub Actions OIDC provider ARN. Leave null to manage the provider in this Terraform state."
 }
+
+variable "github_actions_oidc_subject" {
+  type        = string
+  default     = null
+  description = "Exact GitHub OIDC sub claim trusted by the deployment role. Leave null for GitHub's legacy repository-name subject format."
+}

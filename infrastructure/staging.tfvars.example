@@ -14,6 +14,9 @@ maintenance_window       = "sun:04:00-sun:04:30"
 # GitHub provider outside this Terraform state.
 # github_repository = "luishdez420/ForgeFlow-Intelligence"
 # github_actions_oidc_provider_arn = "arn:aws:iam::ACCOUNT:oidc-provider/token.actions.githubusercontent.com"
+# Some repositories use GitHub's ID-based OIDC subject customization. Copy the
+# exact `sub` claim recorded in CloudTrail for a denied workflow attempt.
+# github_actions_oidc_subject = "repo:OWNER_ID/REPOSITORY_ID:environment:staging"
 # domain_name = "staging.example.com"
 # route53_zone_id = "Z123456789"
 # Optional: alert email creates an SNS subscription that must be confirmed in AWS.

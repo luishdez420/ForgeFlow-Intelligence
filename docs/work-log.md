@@ -30,6 +30,11 @@ This is an append-only record of delivery evidence, decisions, failures, and def
 - Corrected the ECS Service Connect shorthand used to create the internal API service before its first AWS deployment.
 - Added a Terraform-managed GitHub Actions OIDC provider/deployment role. Its trust policy permits only this repository's `staging` environment and its permissions are constrained to ForgeFlow image publication, the staging ECS cluster, service discovery, and the two ECS task roles.
 
+## 2026-10-10 — Issue #23 OIDC subject compatibility repair
+
+- The first private release correctly stopped at OIDC authentication before any image, migration, or ECS mutation. CloudTrail showed this repository emits GitHub's ID-based `sub` claim rather than the legacy name-only format.
+- Added a Terraform input for the exact trusted OIDC subject. It preserves a precise repository/environment trust boundary instead of accepting a wildcard claim.
+
 ## 2026-09-26 — Planning and foundation
 
 - Created the ForgeFlow MVP milestone, eight epics-as-labels, and dependency-ordered GitHub issues #1–#20.

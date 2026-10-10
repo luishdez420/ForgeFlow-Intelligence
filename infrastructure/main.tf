@@ -9,6 +9,10 @@ locals {
     var.github_actions_oidc_provider_arn,
     try(aws_iam_openid_connect_provider.github_actions[0].arn, null),
   )
+  github_actions_oidc_subject = coalesce(
+    var.github_actions_oidc_subject,
+    "repo:${var.github_repository}:environment:${var.environment}",
+  )
 }
 
 data "aws_caller_identity" "current" {}
@@ -287,7 +291,7 @@ resource "aws_iam_role" "github_actions_deploy" {
       Condition = {
         StringEquals = {
           "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
-          "token.actions.githubusercontent.com:sub" = "repo:${var.github_repository}:environment:${var.environment}"
+          "token.actions.githubusercontent.com:sub" = local.github_actions_oidc_subject
         }
       }
     }]

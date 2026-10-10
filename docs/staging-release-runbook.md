@@ -20,6 +20,13 @@ use a developer's AWS access keys in CI.
    AWS account already has the GitHub OIDC provider outside this Terraform
    state, set `github_actions_oidc_provider_arn` in the ignored `staging.tfvars`
    file before planning instead of creating a duplicate.
+
+   Some repositories use GitHub's ID-based OIDC subject customization. If AWS
+   denies `AssumeRoleWithWebIdentity`, inspect the denied event's `userName` in
+   CloudTrail and set `github_actions_oidc_subject` to that exact `sub` claim
+   in `staging.tfvars`. This keeps the trust boundary exact rather than
+   widening it with a wildcard.
+
 4. Create the GitHub `staging` environment, restrict who can dispatch it, and
    configure the repository environment variables below.
 
