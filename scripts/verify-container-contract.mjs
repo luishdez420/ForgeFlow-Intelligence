@@ -93,6 +93,18 @@ if (!releaseWorkflow.includes('test "$TARGET_ENV" = "staging"')) {
   throw new Error("Release drills must be restricted to staging.");
 }
 if (
+  !releaseWorkflow.includes("${{ github.run_id }}-${{ github.run_attempt }}")
+) {
+  throw new Error(
+    "Immutable ECR builds must use a distinct tag for each workflow attempt.",
+  );
+}
+if (!releaseWorkflow.includes("@${{ steps.build-api.outputs.digest }}")) {
+  throw new Error(
+    "Deployment must reference the API image by immutable digest.",
+  );
+}
+if (
   !readFileSync("scripts/deploy-ecs-services.sh", "utf8").includes(
     "Rollback drill passed:",
   )

@@ -103,7 +103,7 @@ jobs:
           file: apps/api/Dockerfile
           push: true
           build-args: BUILD_REVISION=${{ github.sha }}
-          tags: ${{ steps.ecr.outputs.registry }}/forgeflow-${{ inputs.environment }}-api:${{ github.sha }}
+          tags: ${{ steps.ecr.outputs.registry }}/forgeflow-${{ inputs.environment }}-api:${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
       - id: build-web
         uses: docker/build-push-action@v6
         with:
@@ -113,7 +113,7 @@ jobs:
           build-args: |
             BUILD_REVISION=${{ github.sha }}
             NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL }}
-          tags: ${{ steps.ecr.outputs.registry }}/forgeflow-${{ inputs.environment }}-web:${{ github.sha }}
+          tags: ${{ steps.ecr.outputs.registry }}/forgeflow-${{ inputs.environment }}-web:${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
       - id: build-worker
         uses: docker/build-push-action@v6
         with:
@@ -121,7 +121,7 @@ jobs:
           file: services/worker/Dockerfile
           push: true
           build-args: BUILD_REVISION=${{ github.sha }}
-          tags: ${{ steps.ecr.outputs.registry }}/forgeflow-${{ inputs.environment }}-worker:${{ github.sha }}
+          tags: ${{ steps.ecr.outputs.registry }}/forgeflow-${{ inputs.environment }}-worker:${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
       - name: Run compatibility-checked migration
         env:
           IMAGE_URI: ${{ steps.ecr.outputs.registry }}/forgeflow-${{ inputs.environment }}-api@${{ steps.build-api.outputs.digest }}

@@ -87,7 +87,8 @@ Configure these as GitHub **environment variables**, not repository files:
 
 1. Dispatch **Pilot release** for `staging` and type `DEPLOY` exactly.
 2. Confirm each ECR image is referenced by its digest in the registered task
-   definitions, not a mutable tag.
+   definitions, not a mutable tag. Build tags include the GitHub run ID and
+   attempt, so a re-dispatched release never overwrites an immutable ECR tag.
 3. Confirm the migration task stops with exit code zero before the services
    update.
 4. Confirm `forgeflow-staging-api`, `forgeflow-staging-web`, and
