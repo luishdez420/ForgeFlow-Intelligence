@@ -9,6 +9,11 @@ This is an append-only record of delivery evidence, decisions, failures, and def
 - Added an idempotent ECS bootstrap task that creates or rotates `forgeflow_runtime` from the separate runtime URL, plus a release-blocking, rolled-back read/write smoke task that verifies the constrained login before application services update.
 - Updated the recovery runbook for the actual one-day free-plan staging backup window and the isolated restore procedure. AWS point-in-time restore evidence remains the required closure gate for #24.
 
+## 2026-10-10 — Issue #24 staging bootstrap diagnostic repair
+
+- The first constrained-role bootstrap stopped before container startup because the newly created `database-runtime` Secrets Manager placeholder had no `AWSCURRENT` value. This confirms ECS was correctly attempting to inject the separate application credential rather than falling back to the migration credential.
+- Added narrowly scoped `logs:GetLogEvents` permission for ForgeFlow ECS log streams to the GitHub deployment role so a future stopped task can print its own diagnostics from the release workflow.
+
 ## 2026-10-10 — Issue #23 validated task-definition rendering repair
 
 - The private release reached the ECS service-registration phase after successfully publishing immutable images and completing its migration task. AWS then rejected the web definition because global text replacement changed the literal `GOOGLE_WORKSPACE_DOMAIN` environment-variable name to an empty string when the optional private-bootstrap value was blank.

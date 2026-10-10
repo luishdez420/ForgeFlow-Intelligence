@@ -333,6 +333,12 @@ resource "aws_iam_role_policy" "github_actions_deploy" {
         Resource = "*"
       },
       {
+        Sid      = "ReadForgeFlowReleaseTaskLogs"
+        Effect   = "Allow"
+        Action   = ["logs:GetLogEvents"]
+        Resource = [for log_group in aws_cloudwatch_log_group.service : "${trimsuffix(log_group.arn, ":*")}:log-stream:*"]
+      },
+      {
         Sid    = "DeployOnlyToForgeFlowCluster"
         Effect = "Allow"
         Action = [
