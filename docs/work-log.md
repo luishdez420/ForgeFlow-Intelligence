@@ -19,6 +19,11 @@ This is an append-only record of delivery evidence, decisions, failures, and def
 - Added dedicated Terraform-managed restore-drill secret placeholders so an isolated restored database can be checked without changing either live database secret.
 - Added a local operator helper that discovers the deployed API image, uses those restore-only secret ARNs to run the role bootstrap and rolled-back runtime read/write smoke in private ECS networking, and prints stopped-task diagnostics on failure.
 
+## 2026-10-10 — Issue #24 RDS role-rotation compatibility repair
+
+- The isolated restore drill revealed that RDS rejects an `ALTER ROLE ... NOSUPERUSER` clause even when the target role is already non-superuser, because the RDS master is not a native PostgreSQL superuser.
+- Bootstrap now validates that an existing runtime role has none of the elevated PostgreSQL privilege flags, then rotates only the safe login/password attributes. New roles remain explicitly created without elevated privileges.
+
 ## 2026-10-10 — Issue #23 validated task-definition rendering repair
 
 - The private release reached the ECS service-registration phase after successfully publishing immutable images and completing its migration task. AWS then rejected the web definition because global text replacement changed the literal `GOOGLE_WORKSPACE_DOMAIN` environment-variable name to an empty string when the optional private-bootstrap value was blank.

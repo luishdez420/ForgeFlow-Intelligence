@@ -48,4 +48,16 @@ describe("database runtime role contract", () => {
       }),
     ).toThrow("PostgreSQL protocol");
   });
+
+  it("uses a URL-safe runtime password without accepting a mismatched username", () => {
+    expect(() =>
+      runtimeRoleConfigFromEnvironment({
+        DATABASE_MIGRATOR_URL: "postgresql://migrator:secret@db/forgeflow",
+        DATABASE_MIGRATOR_USERNAME: "forgeflow_migrator",
+        DATABASE_RUNTIME_USERNAME: "unexpected_role",
+        DATABASE_RUNTIME_URL:
+          "postgresql://forgeflow_runtime:runtime%2Fsecret@db/forgeflow",
+      }),
+    ).toThrow("must match");
+  });
 });

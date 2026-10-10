@@ -97,13 +97,13 @@ async function passwordRoleStatement(
   username: string,
   password: string,
 ): Promise<string> {
+  const roleAttributes =
+    action === "CREATE"
+      ? "LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE INHERIT NOREPLICATION"
+      : "LOGIN NOCREATEDB NOCREATEROLE INHERIT NOREPLICATION";
   const statement = await client.query<{ statement: string }>(
     "SELECT format($1::text, $2::text, $3::text) AS statement",
-    [
-      `${action} ROLE %I LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE INHERIT NOREPLICATION PASSWORD %L`,
-      username,
-      password,
-    ],
+    [`${action} ROLE %I ${roleAttributes} PASSWORD %L`, username, password],
   );
   return statement.rows[0]?.statement ?? "";
 }
@@ -121,14 +121,34 @@ export async function configureRuntimeDatabaseRole(
       CREATE ROLE forgeflow_runtime_access NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOREPLICATION;
     EXCEPTION WHEN duplicate_object THEN NULL;
     END $$`);
-    const existing = await client.query(
-      "SELECT 1 FROM pg_roles WHERE rolname = $1",
+    const existing = await client.query<{
+      rolsuper: boolean;
+      rolcreatedb: boolean;
+      rolcreaterole: boolean;
+      rolreplication: boolean;
+      rolbypassrls: boolean;
+    }>(
+      `SELECT rolsuper, rolcreatedb, rolcreaterole, rolreplication, rolbypassrls
+       FROM pg_roles WHERE rolname = $1`,
       [config.runtimeUsername],
     );
+    const existingRole = existing.rows[0];
+    if (
+      existingRole &&
+      (existingRole.rolsuper ||
+        existingRole.rolcreatedb ||
+        existingRole.rolcreaterole ||
+        existingRole.rolreplication ||
+        existingRole.rolbypassrls)
+    ) {
+      throw new Error(
+        "The existing runtime database role has elevated PostgreSQL privileges.",
+      );
+    }
     await client.query(
       await passwordRoleStatement(
         client,
-        existing.rowCount === 0 ? "CREATE" : "ALTER",
+        existingRole ? "ALTER" : "CREATE",
         config.runtimeUsername,
         config.runtimePassword,
       ),
