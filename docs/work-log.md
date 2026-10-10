@@ -35,6 +35,11 @@ This is an append-only record of delivery evidence, decisions, failures, and def
 - The first private release correctly stopped at OIDC authentication before any image, migration, or ECS mutation. CloudTrail showed this repository emits GitHub's ID-based `sub` claim rather than the legacy name-only format.
 - Added a Terraform input for the exact trusted OIDC subject. It preserves a precise repository/environment trust boundary instead of accepting a wildcard claim.
 
+## 2026-10-10 — Issue #23 verified RDS certificate-chain repair
+
+- The next private migration reached the RDS endpoint but correctly failed TLS verification because Node's bundled trust store did not include the AWS RDS root chain. The deployment is no longer retried blindly.
+- API and worker images now install the official AWS RDS global trust bundle; Node receives it through `NODE_EXTRA_CA_CERTS` while Python/libpq uses the updated OS trust store. Failed migration tasks now emit their stop reason and CloudWatch log stream in the Actions log.
+
 ## 2026-10-10 — Issue #23 private migration connectivity finding
 
 - The first authenticated private release built and published all immutable images, then stopped before ECS service creation because the migration task could not reach a local-development database address stored in the staging database secret.

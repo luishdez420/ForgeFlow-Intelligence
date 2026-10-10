@@ -56,6 +56,11 @@ does not load it). Local development commonly defines `DATABASE_URL` with a
 Compose address such as `127.0.0.1:15432`; that value must never be uploaded to
 the staging `database` secret.
 
+The API and worker images install the official AWS RDS global trust bundle at
+build time. Keep `sslmode=require` in the staging URL: it is encrypted and the
+container verifies the RDS certificate chain rather than disabling certificate
+verification to work around a local trust-store mismatch.
+
 ## GitHub staging environment variables
 
 Configure these as GitHub **environment variables**, not repository files:
