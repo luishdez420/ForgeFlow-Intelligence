@@ -2,6 +2,12 @@
 
 This is an append-only record of delivery evidence, decisions, failures, and deferred work.
 
+## 2026-10-11 — Issue #25 HTTPS OAuth ingress prepared
+
+- Added optional Terraform-managed public HTTPS ingress for the web service: Route53 DNS validation, ACM certificate, HTTP-to-HTTPS redirect, and an ALB target group. Only the ALB is internet-facing; ECS tasks remain in private subnets and have no public IPs.
+- Updated the release script to attach the web service to the target group only when explicitly enabled. It fails closed unless the public origin is HTTPS and a Workspace domain is configured.
+- Documented the exact Route53, GitHub environment, Google OAuth callback, and browser-acceptance sequence in the staging release runbook. Live completion still needs an owned Route53 domain and approved Workspace domain.
+
 ## 2026-10-11 — Issue #24 restore drill completed
 
 - The normal staging release completed the migration, constrained-role bootstrap, and transaction-scoped runtime read/write smoke before service rollout.

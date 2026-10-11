@@ -93,6 +93,44 @@ resource "aws_security_group" "application" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
+
+resource "aws_security_group" "public_web" {
+  count       = var.enable_public_web_ingress ? 1 : 0
+  name        = "${local.name}-public-web"
+  description = "Internet HTTPS entrypoint for the ForgeFlow web service"
+  vpc_id      = aws_vpc.pilot.id
+
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port       = 3000
+    to_port         = 3000
+    protocol        = "tcp"
+    security_groups = [aws_security_group.application.id]
+  }
+}
+
+resource "aws_security_group_rule" "web_from_public_alb" {
+  count                    = var.enable_public_web_ingress ? 1 : 0
+  type                     = "ingress"
+  from_port                = 3000
+  to_port                  = 3000
+  protocol                 = "tcp"
+  security_group_id        = aws_security_group.application.id
+  source_security_group_id = aws_security_group.public_web[0].id
+}
 resource "aws_security_group" "database" {
   name   = "${local.name}-database"
   vpc_id = aws_vpc.pilot.id
@@ -166,6 +204,99 @@ resource "aws_elasticache_replication_group" "pilot" {
 
 resource "aws_ecs_cluster" "pilot" {
   name = local.name
+}
+
+resource "aws_acm_certificate" "web" {
+  count             = var.enable_public_web_ingress ? 1 : 0
+  domain_name       = var.domain_name
+  validation_method = "DNS"
+}
+
+resource "aws_route53_record" "web_certificate_validation" {
+  count           = var.enable_public_web_ingress ? 1 : 0
+  allow_overwrite = true
+  zone_id         = var.route53_zone_id
+  name            = tolist(aws_acm_certificate.web[0].domain_validation_options)[0].resource_record_name
+  records         = [tolist(aws_acm_certificate.web[0].domain_validation_options)[0].resource_record_value]
+  ttl             = 60
+  type            = tolist(aws_acm_certificate.web[0].domain_validation_options)[0].resource_record_type
+}
+
+resource "aws_acm_certificate_validation" "web" {
+  count                   = var.enable_public_web_ingress ? 1 : 0
+  certificate_arn         = aws_acm_certificate.web[0].arn
+  validation_record_fqdns = [aws_route53_record.web_certificate_validation[0].fqdn]
+}
+
+resource "aws_lb" "web" {
+  count              = var.enable_public_web_ingress ? 1 : 0
+  name               = "${local.name}-web"
+  internal           = false
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.public_web[0].id]
+  subnets            = aws_subnet.public[*].id
+}
+
+resource "aws_lb_target_group" "web" {
+  count       = var.enable_public_web_ingress ? 1 : 0
+  name        = "${local.name}-web"
+  port        = 3000
+  protocol    = "HTTP"
+  target_type = "ip"
+  vpc_id      = aws_vpc.pilot.id
+
+  health_check {
+    enabled             = true
+    healthy_threshold   = 2
+    interval            = 30
+    matcher             = "200-399"
+    path                = "/sign-in"
+    protocol            = "HTTP"
+    timeout             = 5
+    unhealthy_threshold = 3
+  }
+}
+
+resource "aws_lb_listener" "web_http" {
+  count             = var.enable_public_web_ingress ? 1 : 0
+  load_balancer_arn = aws_lb.web[0].arn
+  port              = 80
+  protocol          = "HTTP"
+
+  default_action {
+    type = "redirect"
+    redirect {
+      port        = "443"
+      protocol    = "HTTPS"
+      status_code = "HTTP_301"
+    }
+  }
+}
+
+resource "aws_lb_listener" "web_https" {
+  count             = var.enable_public_web_ingress ? 1 : 0
+  load_balancer_arn = aws_lb.web[0].arn
+  port              = 443
+  protocol          = "HTTPS"
+  certificate_arn   = aws_acm_certificate_validation.web[0].certificate_arn
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.web[0].arn
+  }
+}
+
+resource "aws_route53_record" "web" {
+  count   = var.enable_public_web_ingress ? 1 : 0
+  zone_id = var.route53_zone_id
+  name    = var.domain_name
+  type    = "A"
+
+  alias {
+    name                   = aws_lb.web[0].dns_name
+    zone_id                = aws_lb.web[0].zone_id
+    evaluate_target_health = true
+  }
 }
 
 resource "aws_service_discovery_private_dns_namespace" "pilot" {

@@ -14,10 +14,17 @@ required=(
 # Replace them before enabling analyst sign-in.
 : "${WEB_APP_ORIGIN:=http://localhost:3000}"
 : "${GOOGLE_WORKSPACE_DOMAIN:=}"
+: "${PUBLIC_WEB_INGRESS_ENABLED:=false}"
 
 for name in "${required[@]}"; do
   test -n "${!name:-}" || { echo "Missing required environment variable: $name" >&2; exit 1; }
 done
+
+if [[ "$PUBLIC_WEB_INGRESS_ENABLED" == "true" ]]; then
+  test -n "${WEB_TARGET_GROUP_ARN:-}" || { echo "Missing required environment variable: WEB_TARGET_GROUP_ARN" >&2; exit 1; }
+  [[ "$WEB_APP_ORIGIN" == https://* ]] || { echo "WEB_APP_ORIGIN must be HTTPS when public web ingress is enabled." >&2; exit 1; }
+  test -n "$GOOGLE_WORKSPACE_DOMAIN" || { echo "GOOGLE_WORKSPACE_DOMAIN is required when public web ingress is enabled." >&2; exit 1; }
+fi
 
 declare -A previous_task_definitions
 declare -A created_services
@@ -58,7 +65,17 @@ for service in api web worker; do
 
   if [[ "$status" == "ACTIVE" ]]; then
     previous_task_definitions[$service]=$(aws ecs describe-services --cluster "$ECS_CLUSTER" --services "$service_name" --query 'services[0].taskDefinition' --output text)
-    aws ecs update-service --cluster "$ECS_CLUSTER" --service "$service_name" --task-definition "$task_definition" --force-new-deployment >/dev/null
+    update_arguments=(--cluster "$ECS_CLUSTER" --service "$service_name" --task-definition "$task_definition" --force-new-deployment)
+    if [[ "$service" == "web" ]]; then
+      if [[ "$PUBLIC_WEB_INGRESS_ENABLED" == "true" ]]; then
+        update_arguments+=(--load-balancers "targetGroupArn=$WEB_TARGET_GROUP_ARN,containerName=web,containerPort=3000")
+      else
+        # Explicitly detach a previously configured public target group when
+        # ingress is disabled, rather than leaving a stale public path behind.
+        update_arguments+=(--load-balancers '[]')
+      fi
+    fi
+    aws ecs update-service "${update_arguments[@]}" >/dev/null
     if [[ "${ROLLBACK_DRILL:-false}" == "true" && "$service" == "api" ]]; then
       echo "Starting expected staging rollback drill for ${service_name}."
       rollback
@@ -82,6 +99,10 @@ for service in api web worker; do
       >/dev/null
     created_services[$service]=true
   else
+    web_load_balancer_arguments=()
+    if [[ "$service" == "web" && "$PUBLIC_WEB_INGRESS_ENABLED" == "true" ]]; then
+      web_load_balancer_arguments=(--load-balancers "targetGroupArn=$WEB_TARGET_GROUP_ARN,containerName=web,containerPort=3000")
+    fi
     aws ecs create-service \
       --cluster "$ECS_CLUSTER" \
       --service-name "$service_name" \
@@ -90,6 +111,7 @@ for service in api web worker; do
       --desired-count 1 \
       --health-check-grace-period-seconds 90 \
       --network-configuration "awsvpcConfiguration={subnets=[$ECS_SUBNETS],securityGroups=[$ECS_SECURITY_GROUP],assignPublicIp=DISABLED}" \
+      "${web_load_balancer_arguments[@]}" \
       >/dev/null
     created_services[$service]=true
   fi

@@ -54,6 +54,8 @@ jobs:
       ECS_TASK_EXECUTION_ROLE_ARN: ${{ vars.ECS_TASK_EXECUTION_ROLE_ARN }}
       ECS_TASK_ROLE_ARN: ${{ vars.ECS_TASK_ROLE_ARN }}
       SERVICE_DISCOVERY_NAMESPACE_ARN: ${{ vars.SERVICE_DISCOVERY_NAMESPACE_ARN }}
+      WEB_TARGET_GROUP_ARN: ${{ vars.WEB_TARGET_GROUP_ARN }}
+      PUBLIC_WEB_INGRESS_ENABLED: ${{ vars.PUBLIC_WEB_INGRESS_ENABLED }}
       MIGRATION_FAILURE_DRILL: ${{ inputs.migration_failure_drill }}
       ROLLBACK_DRILL: ${{ inputs.rollback_drill }}
     steps:

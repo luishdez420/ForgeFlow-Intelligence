@@ -194,6 +194,16 @@ if (!deployScript.includes("for rollback_service in api web worker")) {
     "Rollback must not overwrite the active service loop variable.",
   );
 }
+if (!deployScript.includes("PUBLIC_WEB_INGRESS_ENABLED")) {
+  throw new Error(
+    "The service deployment script must gate public web ingress explicitly.",
+  );
+}
+if (!deployScript.includes("WEB_TARGET_GROUP_ARN")) {
+  throw new Error(
+    "The service deployment script must require an ALB target group for public ingress.",
+  );
+}
 
 for (const name of requiredTaskDefinitions) {
   const environment =

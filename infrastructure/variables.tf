@@ -77,6 +77,20 @@ variable "route53_zone_id" {
   default = null
 }
 
+variable "enable_public_web_ingress" {
+  type        = bool
+  default     = false
+  description = "Create an internet-facing HTTPS ALB for the web service. Keep false until a Route53-managed domain is ready."
+
+  validation {
+    condition = (
+      !var.enable_public_web_ingress ||
+      (var.domain_name != null && var.route53_zone_id != null)
+    )
+    error_message = "domain_name and route53_zone_id are required when enable_public_web_ingress is true."
+  }
+}
+
 variable "alarm_email" {
   type      = string
   default   = null

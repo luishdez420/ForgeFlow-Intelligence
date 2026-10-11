@@ -37,6 +37,70 @@ setting entirely. Its health endpoint can be checked inside ECS, but analyst
 sign-in must remain disabled until the public ingress and identity work are
 complete.
 
+## Enable HTTPS analyst access and Google Workspace SSO
+
+Issue #25 adds an **optional** public application load balancer (ALB). It is
+the only public component: the web, API, worker, RDS, and Redis tasks remain
+in private subnets. The ALB redirects HTTP to HTTPS, terminates an ACM
+certificate, and forwards only HTTPS traffic to the web task on port 3000.
+
+Before changing AWS, choose a domain that is hosted in Route53 in this AWS
+account, for example `staging.example.com`. Do not use the ALB's generated DNS
+name as a Google OAuth callback: Google requires a registered HTTPS callback
+whose hostname remains stable.
+
+1. In the ignored staging tfvars file, set these three values together:
+
+   ```hcl
+   domain_name               = "staging.example.com"
+   route53_zone_id           = "Z0123456789EXAMPLE"
+   enable_public_web_ingress = true
+   ```
+
+2. Review and apply the Terraform plan. It creates the public ALB, an ACM
+   certificate and Route53 DNS-validation record, the HTTPS listener, a web
+   target group, and a Route53 alias record. Wait for ACM validation to finish
+   before dispatching the release.
+
+3. Set these additional GitHub **staging environment variables** from
+   Terraform outputs. They are configuration, not secrets:
+
+   | Variable | Value |
+   | --- | --- |
+   | `PUBLIC_WEB_INGRESS_ENABLED` | `true` |
+   | `WEB_TARGET_GROUP_ARN` | `web_target_group_arn` |
+   | `WEB_APP_ORIGIN` | `web_public_url` (for example `https://staging.example.com`) |
+   | `GOOGLE_WORKSPACE_DOMAIN` | Your approved Workspace domain only, such as `example.com` |
+
+   Leave `NEXT_PUBLIC_API_URL` empty: browser requests use same-origin web
+   routes, which call the private API through Service Connect.
+
+4. In Google Cloud Console, open the OAuth client used in
+   `forgeflow/staging/google-oauth` and add exactly this Authorized redirect
+   URI:
+
+   ```text
+   https://staging.example.com/api/auth/callback/google
+   ```
+
+   Replace the example hostname with `web_public_url`. Do not add a wildcard,
+   an HTTP URL, or the private ECS/ALB address.
+
+5. Dispatch a normal staging release. The deployment script refuses to attach
+   the public target group unless the origin is HTTPS and the Workspace domain
+   is set. It registers the private web task with the ALB; it never assigns a
+   public IP to an ECS task.
+
+6. Browser acceptance from a private/incognito window:
+
+   - Opening the analyst URL while signed out redirects to `/sign-in`.
+   - A verified account outside the configured Workspace domain is rejected.
+   - A verified approved account reaches the analyst console and receives an
+     HTTPS-only expiring Auth.js session.
+   - After sign-out, the analyst URL again redirects to `/sign-in`. For expiry,
+     use the session expiry shown by Auth.js or a short-lived test session; do
+     not lower production cookie protections merely to demonstrate expiration.
+
 ## Runtime-secret contract
 
 | Secret name                          | Required representation                                                                                                    | Consumers                |
@@ -83,7 +147,9 @@ Configure these as GitHub **environment variables**, not repository files:
 | `GOOGLE_OAUTH_SECRET_ARN`         | `runtime_secret_arns["google-oauth"]`                                         |
 | `WEB_APP_ORIGIN`                  | Optional for private bootstrap; required HTTPS origin before analyst sign-in  |
 | `GOOGLE_WORKSPACE_DOMAIN`         | Optional for private bootstrap; required before analyst sign-in               |
-| `NEXT_PUBLIC_API_URL`             | Optional for private bootstrap; required public API origin for browser access |
+| `NEXT_PUBLIC_API_URL`             | Leave empty unless intentionally exposing a separate browser API origin        |
+| `PUBLIC_WEB_INGRESS_ENABLED`      | `true` only after the optional Terraform HTTPS ingress has been applied       |
+| `WEB_TARGET_GROUP_ARN`             | Terraform `web_target_group_arn`; required when public web ingress is enabled |
 
 ## Release and verification
 
@@ -114,7 +180,5 @@ Configure these as GitHub **environment variables**, not repository files:
 
 ## Notes
 
-The Terraform foundation currently has no public load balancer or approved
-staging domain. Fargate service deployment can therefore be verified privately
-first; the HTTPS ingress and Google OAuth callback validation remain a later
-pilot-access gate. Do not expose a task directly with a public IP.
+Keep `enable_public_web_ingress = false` until a reviewed Route53-hosted domain
+is available. Do not expose a task directly with a public IP.

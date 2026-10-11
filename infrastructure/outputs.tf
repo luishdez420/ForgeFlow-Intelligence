@@ -47,3 +47,13 @@ output "runtime_secret_arns" {
     for name, secret in aws_secretsmanager_secret.runtime : name => secret.arn
   }
 }
+
+output "web_target_group_arn" {
+  value       = try(aws_lb_target_group.web[0].arn, null)
+  description = "The ALB target group the public web ECS service registers with when HTTPS ingress is enabled."
+}
+
+output "web_public_url" {
+  value       = var.enable_public_web_ingress ? "https://${var.domain_name}" : null
+  description = "Public HTTPS analyst origin when HTTPS ingress is enabled."
+}
