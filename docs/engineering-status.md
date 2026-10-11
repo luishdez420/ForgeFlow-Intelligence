@@ -1,6 +1,6 @@
 # Engineering status
 
-Last updated: 2026-10-10
+Last updated: 2026-10-11
 
 ## Product state
 
@@ -11,6 +11,7 @@ ForgeFlow is an internal analyst-team MVP for durable, source-grounded company a
 - #1–#9: architecture, ADRs, monorepo/tooling, Compose, shared contracts, initial schema, persisted workflow creation, DAG resolution, and atomic task claiming. Delivered in `0e2917e` and closed with verification evidence.
 - #22: closed. Staging pilot infrastructure was applied from reviewed remote Terraform state. The private VPC/subnets, RDS PostgreSQL, Redis, ECS cluster, ECR repositories, CloudWatch logs/alarms, IAM task-execution role, and Secrets Manager placeholders are operational. AWS verification confirms RDS is encrypted and non-public, private subnets do not assign public IPs, Redis/database ingress is limited to the application security group, and S3 state/DynamoDB locking are present.
 - #23: closed. Staging deployment is verified end-to-end: immutable ECR digest publication, migration before service update, private ECS API/web/worker rollout, an intentional pre-rollout migration failure, and an API revision rollback drill. The renderer validates structured task definitions before AWS registration and releases run through the scoped GitHub OIDC role.
+- #24: closed. Application database access now uses the constrained `forgeflow_runtime` credential while migrations retain their separate credential. The staging release bootstrap and rolled-back read/write smoke passed, followed by an isolated point-in-time restore drill that passed the same constrained-role check. The temporary restored database was deleted and its restore-only secrets retired.
 - #10: worker runtime, registration, heartbeats, capability advertisement, draining, graceful shutdown, and PostgreSQL task claims. Delivered in `e13658e` and closed with automated and local smoke-test evidence.
 - #11: persisted retry policy, failure classification, stale-lease safety, and expired-lease recovery. Delivered in `b2d33d3` and closed with unit and PostgreSQL integration evidence.
 - #12: failure-injection coverage for crash-after-claim, duplicate delivery, retry timing, DAG propagation, and recovery. Delivered in `08e8d0d` and closed with Compose-backed integration evidence.
@@ -19,7 +20,6 @@ ForgeFlow is an internal analyst-team MVP for durable, source-grounded company a
 
 ## In delivery
 
-- #24: release deployment now separates the migration secret from a constrained `forgeflow_runtime` application secret. The release bootstraps/rotates the runtime role after migrations and verifies its transaction-scoped read/write access before service rollout. RDS retention/windows, snapshot tags, and the recovery runbook are in place; an isolated AWS point-in-time restore drill remains the closure gate.
 - #25: Auth.js Google sign-in is configured locally with verified Workspace-domain enforcement and a server-side protected analyst route. The browser acceptance suite now verifies that an unauthenticated visitor is redirected to the fail-closed sign-in screen. OAuth credentials and a real Google callback test remain external setup work.
 - #26: persisted pilot access-control records are implemented: normalized users, analyst/admin roles, hashed invitation tokens, user revocation, workflow ownership helpers, and redacted audit events. Session-to-API enforcement is intentionally sequenced for #27; the data model and authorization rules are ready for it.
 - #27: same-origin authenticated web routes now sign API requests with a shared internal secret. The API rejects unsigned/stale/tampered requests, resolves active allow-listed roles, records workflow ownership, and enforces ownership for workflow/report reads. Local Google sign-in, allow-list persistence, owned workflow creation, and cross-user denial have been manually verified. A single verified personal Google email may be enabled only under local development with `GOOGLE_ALLOWED_TEST_EMAIL`; staging/production still require a Workspace domain.
@@ -49,11 +49,10 @@ ForgeFlow is an internal analyst-team MVP for durable, source-grounded company a
 - No approved market-data vendor, credentials, or license exists; market-derived information remains explicitly unavailable.
 - No live SEC EDGAR or OpenAI credentials are configured. The local SEC smoke command remains disabled unless an operator explicitly supplies a contactable User-Agent; it persists no response content.
 - The local SEC smoke check is verified for MSFT. It returned Microsoft CIK `0000789019`, 80 supported filings, and a sample of `8-K`, `10-K`, and `8-K`; no response content was persisted.
-- #24 cannot close until an authorized operator applies the RDS controls and performs the documented staged point-in-time restore drill against AWS.
 - #25 cannot close until a Google Cloud OAuth client, `AUTH_SECRET`, and an approved Workspace domain are configured in a non-local environment and the sign-in/callback/session-expiry browser tests run.
 - Redis at-rest encryption is not enabled in the deployed cache. Redis is private, token-protected, and encrypted in transit; enabling at-rest encryption requires a planned cache replacement and should be tracked as a pilot hardening follow-up before sensitive coordination payloads are permitted.
 - Terraform currently uses the still-working DynamoDB lock-table backend option, which Terraform reports as deprecated. Migrate deliberately to S3 native lockfiles after documenting state-lock compatibility; do not remove the existing table during active infrastructure work.
 
 ## Next planned issue
 
-#24 — apply the separate runtime database-secret placeholder, run the constrained-role release smoke, and complete the isolated staged point-in-time restore drill.
+#25 — configure a non-local Google OAuth callback and approved Workspace domain, then complete live sign-in/callback/session-expiry browser acceptance.

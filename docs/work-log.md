@@ -2,6 +2,12 @@
 
 This is an append-only record of delivery evidence, decisions, failures, and deferred work.
 
+## 2026-10-11 — Issue #24 restore drill completed
+
+- The normal staging release completed the migration, constrained-role bootstrap, and transaction-scoped runtime read/write smoke before service rollout.
+- An isolated point-in-time RDS restore then passed `database-role-bootstrap` and `database-runtime-smoke`; the smoke transaction completed without retaining drill data.
+- The temporary restored database was confirmed deleted (`DBInstanceNotFound`), and both restore-only Secrets Manager entries were overwritten with the inert `RETIRED_RESTORE_DRILL` marker. Issue #24 is eligible for closure.
+
 ## 2026-10-10 — Issue #23 closed; Issue #24 runtime credential separation delivered
 
 - Closed #23 after a normal private staging release, a controlled migration task failure before any service update, and an API revision rollback drill each produced the expected result. The release uses digest-pinned images and GitHub OIDC rather than long-lived deployment keys.
